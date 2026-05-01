@@ -1,0 +1,258 @@
+2026-05-01 13:45:09,987 - INFO - Page 1: got 10 (10/159)
+2026-05-01 13:45:10,221 - INFO - Page 1: got 10 (20/159)
+2026-05-01 13:45:10,475 - INFO - Page 1: got 10 (30/159)
+2026-05-01 13:45:10,656 - INFO - Page 2: got 10 (40/159)
+2026-05-01 13:45:10,849 - INFO - Page 2: got 10 (50/159)
+2026-05-01 13:45:11,041 - INFO - Page 3: got 10 (60/159)
+2026-05-01 13:45:11,220 - INFO - Page 3: got 10 (70/159)
+2026-05-01 13:45:11,405 - INFO - Page 3: got 10 (80/159)
+2026-05-01 13:45:11,570 - INFO - Page 4: got 10 (90/159)
+2026-05-01 13:45:11,751 - INFO - Page 4: got 10 (100/159)
+2026-05-01 13:45:11,919 - INFO - Page 5: got 10 (110/159)
+2026-05-01 13:45:12,102 - INFO - Page 5: got 10 (120/159)
+2026-05-01 13:45:12,281 - INFO - Page 5: got 10 (130/159)
+2026-05-01 13:45:12,472 - INFO - Page 6: got 10 (140/159)
+2026-05-01 13:45:12,646 - INFO - Page 6: got 10 (150/159)
+2026-05-01 13:45:12,825 - INFO - Page 7: got 9 (159/159)
+2026-05-01 13:45:12,854 - INFO - Collected 159 of 159 plans
+2026-05-01 13:48:22,081 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 13:48:22,270 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 13:48:22,454 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 13:48:22,615 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 13:48:22,769 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 13:48:23,086 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 13:48:23,248 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 13:48:23,409 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 13:48:23,652 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 13:48:23,813 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 13:48:23,995 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 13:48:24,167 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 13:48:24,326 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 13:48:24,490 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 13:48:24,671 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 13:48:24,844 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 13:48:24,870 - INFO - Collected 159 of 159 plans
+2026-05-01 15:11:51,445 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 15:11:51,676 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 15:11:51,984 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 15:11:52,373 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 15:11:52,566 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 15:11:53,028 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 15:11:53,232 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 15:11:53,506 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 15:11:53,855 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 15:11:54,408 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 15:11:54,648 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 15:11:55,202 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 15:11:55,390 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 15:11:55,607 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 15:11:55,786 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 15:11:55,987 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 15:11:56,015 - INFO - Collected 159 of 159 plans
+2026-05-01 15:13:07,970 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 15:13:08,164 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 15:13:08,756 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 15:13:08,938 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 15:13:09,282 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 15:13:09,512 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 15:13:09,751 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 15:13:09,950 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 15:13:10,123 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 15:13:10,507 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 15:13:10,695 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 15:13:11,006 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 15:13:11,211 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 15:13:11,404 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 15:13:11,623 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 15:13:11,997 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 15:13:12,023 - INFO - Collected 159 of 159 plans
+2026-05-01 15:14:02,893 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 15:14:03,312 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 15:14:03,585 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 15:14:03,786 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 15:14:03,996 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 15:14:04,177 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 15:14:04,364 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 15:14:04,587 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 15:14:04,753 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 15:14:05,002 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 15:14:05,266 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 15:14:05,475 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 15:14:05,748 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 15:14:05,919 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 15:14:06,141 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 15:14:06,428 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 15:14:06,455 - INFO - Collected 159 of 159 plans
+2026-05-01 15:19:08,450 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 15:19:08,706 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 15:19:08,950 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 15:19:09,174 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 15:19:09,416 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 15:19:09,718 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 15:19:10,035 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 15:19:10,303 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 15:19:10,554 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 15:19:10,765 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 15:19:11,027 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 15:19:11,369 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 15:19:11,586 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 15:19:11,823 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 15:19:12,072 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 15:19:12,252 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 15:19:12,284 - INFO - Collected 159 of 159 plans
+2026-05-01 15:33:12,201 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 15:33:12,410 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 15:33:12,593 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 15:33:12,786 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 15:33:12,952 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 15:33:13,127 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 15:33:13,307 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 15:33:13,489 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 15:33:13,661 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 15:33:13,848 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 15:33:14,062 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 15:33:14,232 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 15:33:14,399 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 15:33:14,587 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 15:33:14,762 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 15:33:14,931 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 15:33:14,960 - INFO - Collected 159 of 159 plans
+2026-05-01 15:33:18,690 - INFO - Current snapshots generated!
+2026-05-01 16:34:31,197 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 16:34:31,402 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 16:34:31,685 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 16:34:31,927 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 16:34:32,215 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 16:34:32,439 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 16:34:32,642 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 16:34:32,863 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 16:34:33,067 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 16:34:33,329 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 16:34:33,523 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 16:34:33,743 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 16:34:34,024 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 16:34:34,217 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 16:34:34,410 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 16:34:34,598 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 16:34:34,627 - INFO - Collected 159 of 159 plans
+2026-05-01 16:37:52,666 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 16:37:52,907 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 16:37:53,151 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 16:37:53,353 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 16:37:53,563 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 16:37:53,776 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 16:37:53,976 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 16:37:54,151 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 16:37:54,327 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 16:37:54,712 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 16:37:55,068 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 16:37:55,295 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 16:37:55,745 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 16:37:56,044 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 16:37:56,248 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 16:37:56,444 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 16:37:56,471 - INFO - Collected 159 of 159 plans
+2026-05-01 16:43:22,752 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 16:43:22,938 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 16:43:23,140 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 16:43:23,362 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 16:43:23,587 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 16:43:23,763 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 16:43:23,972 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 16:43:24,155 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 16:43:24,385 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 16:43:24,599 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 16:43:24,767 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 16:43:24,965 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 16:43:25,311 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 16:43:25,503 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 16:43:25,697 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 16:43:25,874 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 16:43:25,902 - INFO - Collected 159 of 159 plans
+2026-05-01 16:43:26,096 - INFO - Loading benefits: shape=(24535, 9), columns=['plan_id', 'plan_name', 'premium', 'benefit_type', 'benefit_name', 'covered', 'network_tier', 'copay', 'coinsurance_rate']
+2026-05-01 16:43:26,168 - INFO - raw_data.benefits: 24535 rows
+2026-05-01 16:43:26,168 - INFO - Loading deductibles: shape=(1507, 6), columns=['plan_id', 'network_tier', 'type', 'amount', 'family_cost', 'display_string']
+2026-05-01 16:43:26,175 - INFO - raw_data.deductibles: 1507 rows
+2026-05-01 16:43:26,175 - INFO - Loading moops: shape=(1200, 8), columns=['plan_id', 'network_tier', 'type', 'amount', 'csr', 'family_cost', 'individual', 'family']
+2026-05-01 16:43:26,182 - INFO - raw_data.moops: 1200 rows
+2026-05-01 16:43:26,183 - INFO - Loading issuer: shape=(1200, 10), columns=['plan_id', 'issuer_id', 'name', 'eligible_dependents', 'address', 'state', 'individual_url', 'shop_url', 'toll_free', 'tty_number']
+2026-05-01 16:43:26,220 - INFO - raw_data.issuer: 1200 rows
+2026-05-01 16:43:26,221 - INFO - Loading rating: shape=(1200, 9), columns=['plan_id', 'available', 'global_rating', 'clinical_quality_mgmt_rating', 'enrollee_experience_rating', 'plan_efficiency_rating', 'global_not_rated_reason', 'enrollee_experience_not_rated_reason', 'plan_efficiency_not_rated_reason']
+2026-05-01 16:43:26,228 - INFO - raw_data.rating: 1200 rows
+2026-05-01 16:43:26,228 - INFO - Loading plans: shape=(159, 28), columns=['id', 'name', 'premium', 'premium_w_credit', 'ehb_premium', 'pediatric_ehb_premium', 'aptc_eligible_premium', 'metal_level', 'type', 'design_type', 'is_standardized_plan', 'state', 'disease_mgmt_programs', 'has_national_network', 'market', 'max_age_child', 'product_division', 'hsa_eligible', 'insurance_market', 'specialist_referral_required', 'tobacco_lookback', 'suppression_state', 'guaranteed_rate', 'simple_choice', 'is_ineligible', 'rx_3mo_mail_order', 'covers_nonhyde_abortion', 'service_area_id']
+2026-05-01 16:43:26,239 - INFO - raw_data.plans: 159 rows
+2026-05-01 16:45:37,041 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 16:45:37,238 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 16:45:37,411 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 16:45:37,595 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 16:45:37,795 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 16:45:38,031 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 16:45:38,268 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 16:45:38,473 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 16:45:38,658 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 16:45:38,846 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 16:45:39,044 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 16:45:39,364 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 16:45:39,531 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 16:45:39,914 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 16:45:40,133 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 16:45:40,470 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 16:45:40,496 - INFO - Collected 159 of 159 plans
+2026-05-01 16:45:40,723 - INFO - Loading benefits: shape=(24535, 9), columns=['plan_id', 'plan_name', 'premium', 'benefit_type', 'benefit_name', 'covered', 'network_tier', 'copay', 'coinsurance_rate']
+2026-05-01 16:45:40,769 - INFO - raw_data.benefits: 24535 rows
+2026-05-01 16:45:40,769 - INFO - Loading deductibles: shape=(1507, 6), columns=['plan_id', 'network_tier', 'type', 'amount', 'family_cost', 'display_string']
+2026-05-01 16:45:40,780 - INFO - raw_data.deductibles: 1507 rows
+2026-05-01 16:45:40,780 - INFO - Loading moops: shape=(1200, 8), columns=['plan_id', 'network_tier', 'type', 'amount', 'csr', 'family_cost', 'individual', 'family']
+2026-05-01 16:45:40,790 - INFO - raw_data.moops: 1200 rows
+2026-05-01 16:45:40,790 - INFO - Loading issuer: shape=(1200, 10), columns=['plan_id', 'issuer_id', 'name', 'eligible_dependents', 'address', 'state', 'individual_url', 'shop_url', 'toll_free', 'tty_number']
+2026-05-01 16:45:40,827 - INFO - raw_data.issuer: 1200 rows
+2026-05-01 16:45:40,827 - INFO - Loading rating: shape=(1200, 9), columns=['plan_id', 'available', 'global_rating', 'clinical_quality_mgmt_rating', 'enrollee_experience_rating', 'plan_efficiency_rating', 'global_not_rated_reason', 'enrollee_experience_not_rated_reason', 'plan_efficiency_not_rated_reason']
+2026-05-01 16:45:40,835 - INFO - raw_data.rating: 1200 rows
+2026-05-01 16:45:40,835 - INFO - Loading plans: shape=(159, 28), columns=['id', 'name', 'premium', 'premium_w_credit', 'ehb_premium', 'pediatric_ehb_premium', 'aptc_eligible_premium', 'metal_level', 'type', 'design_type', 'is_standardized_plan', 'state', 'disease_mgmt_programs', 'has_national_network', 'market', 'max_age_child', 'product_division', 'hsa_eligible', 'insurance_market', 'specialist_referral_required', 'tobacco_lookback', 'suppression_state', 'guaranteed_rate', 'simple_choice', 'is_ineligible', 'rx_3mo_mail_order', 'covers_nonhyde_abortion', 'service_area_id']
+2026-05-01 16:45:40,848 - INFO - raw_data.plans: 159 rows
+2026-05-01 17:01:55,908 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 17:01:56,161 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 17:01:56,534 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 17:01:56,894 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 17:01:57,213 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 17:01:57,604 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 17:01:57,856 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 17:01:58,074 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 17:01:58,329 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 17:01:58,692 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 17:01:59,243 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 17:01:59,460 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 17:01:59,645 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 17:01:59,844 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 17:02:00,083 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 17:02:00,259 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 17:02:00,284 - INFO - Collected 159 of 159 plans
+2026-05-01 17:02:53,172 - INFO - Page 1: got 10 rows out of: (10/159)
+2026-05-01 17:02:53,351 - INFO - Page 1: got 10 rows out of: (20/159)
+2026-05-01 17:02:53,557 - INFO - Page 1: got 10 rows out of: (30/159)
+2026-05-01 17:02:53,738 - INFO - Page 2: got 10 rows out of: (40/159)
+2026-05-01 17:02:53,965 - INFO - Page 2: got 10 rows out of: (50/159)
+2026-05-01 17:02:54,223 - INFO - Page 3: got 10 rows out of: (60/159)
+2026-05-01 17:02:54,430 - INFO - Page 3: got 10 rows out of: (70/159)
+2026-05-01 17:02:54,631 - INFO - Page 3: got 10 rows out of: (80/159)
+2026-05-01 17:02:54,846 - INFO - Page 4: got 10 rows out of: (90/159)
+2026-05-01 17:02:55,090 - INFO - Page 4: got 10 rows out of: (100/159)
+2026-05-01 17:02:55,294 - INFO - Page 5: got 10 rows out of: (110/159)
+2026-05-01 17:02:55,488 - INFO - Page 5: got 10 rows out of: (120/159)
+2026-05-01 17:02:55,771 - INFO - Page 5: got 10 rows out of: (130/159)
+2026-05-01 17:02:56,001 - INFO - Page 6: got 10 rows out of: (140/159)
+2026-05-01 17:02:56,227 - INFO - Page 6: got 10 rows out of: (150/159)
+2026-05-01 17:02:56,448 - INFO - Page 7: got 9 rows out of: (159/159)
+2026-05-01 17:02:56,475 - INFO - Collected 159 of 159 plans
+2026-05-01 17:02:56,669 - INFO - Loading benefits: shape=(24535, 9), columns=['plan_id', 'plan_name', 'premium', 'benefit_type', 'benefit_name', 'covered', 'network_tier', 'copay', 'coinsurance_rate']
+2026-05-01 17:02:56,728 - INFO - raw_data.benefits: 24535 rows
+2026-05-01 17:02:56,728 - INFO - Loading deductibles: shape=(1507, 6), columns=['plan_id', 'network_tier', 'type', 'amount', 'family_cost', 'display_string']
+2026-05-01 17:02:56,736 - INFO - raw_data.deductibles: 1507 rows
+2026-05-01 17:02:56,736 - INFO - Loading moops: shape=(1200, 8), columns=['plan_id', 'network_tier', 'type', 'amount', 'csr', 'family_cost', 'individual', 'family']
+2026-05-01 17:02:56,744 - INFO - raw_data.moops: 1200 rows
+2026-05-01 17:02:56,744 - INFO - Loading issuer: shape=(1200, 10), columns=['plan_id', 'issuer_id', 'name', 'eligible_dependents', 'address', 'state', 'individual_url', 'shop_url', 'toll_free', 'tty_number']
+2026-05-01 17:02:56,780 - INFO - raw_data.issuer: 1200 rows
+2026-05-01 17:02:56,781 - INFO - Loading rating: shape=(1200, 9), columns=['plan_id', 'available', 'global_rating', 'clinical_quality_mgmt_rating', 'enrollee_experience_rating', 'plan_efficiency_rating', 'global_not_rated_reason', 'enrollee_experience_not_rated_reason', 'plan_efficiency_not_rated_reason']
+2026-05-01 17:02:56,788 - INFO - raw_data.rating: 1200 rows
+2026-05-01 17:02:56,789 - INFO - Loading plans: shape=(159, 28), columns=['id', 'name', 'premium', 'premium_w_credit', 'ehb_premium', 'pediatric_ehb_premium', 'aptc_eligible_premium', 'metal_level', 'type', 'design_type', 'is_standardized_plan', 'state', 'disease_mgmt_programs', 'has_national_network', 'market', 'max_age_child', 'product_division', 'hsa_eligible', 'insurance_market', 'specialist_referral_required', 'tobacco_lookback', 'suppression_state', 'guaranteed_rate', 'simple_choice', 'is_ineligible', 'rx_3mo_mail_order', 'covers_nonhyde_abortion', 'service_area_id']
+2026-05-01 17:02:56,801 - INFO - raw_data.plans: 159 rows
