@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: raw_data
+    schema: raw_data
+    tables:
+      - name: plans
+      - name: benefits
+      - name: deductibles
+      - name: moops
+      - name: issuer
+      - name: rating

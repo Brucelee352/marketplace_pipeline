@@ -1,0 +1,62 @@
+version: 2
+
+models:
+  - name: stg_plans
+    description: "Cleaned plan attributes. One row per plan. Parses disease_mgmt_programs from Python list repr to a comma-separated string."
+    columns:
+      - name: plan_id
+        data_tests: [unique, not_null]
+      - name: plan_name
+        data_tests: [not_null]
+      - name: premium
+        data_tests: [not_null]
+      - name: metal_level
+        data_tests: [not_null]
+      - name: plan_type
+        data_tests: [not_null]
+
+  - name: stg_benefits
+    description: "Cleaned benefit cost-sharing rows. One row per plan × benefit_type × network_tier. Adds is_mental_health_benefit flag."
+    columns:
+      - name: plan_id
+        data_tests: [not_null]
+      - name: benefit_type
+        data_tests: [not_null]
+      - name: network_tier
+        data_tests: [not_null]
+      - name: covered
+        data_tests: [not_null]
+      - name: is_mental_health_benefit
+        data_tests: [not_null]
+
+  - name: stg_deductibles
+    description: "Cleaned deductible rows. One row per plan × deductible_type × network_tier × family_cost."
+    columns:
+      - name: plan_id
+        data_tests: [not_null]
+      - name: deductible_type
+        data_tests: [not_null]
+
+  - name: stg_moops
+    description: "Cleaned maximum out-of-pocket rows. One row per plan × moop_type × network_tier × csr × family_cost."
+    columns:
+      - name: plan_id
+        data_tests: [not_null]
+      - name: moop_type
+        data_tests: [not_null]
+
+  - name: stg_issuer
+    description: "Deduplicated issuer data at the plan_id × issuer_id grain. GROUP BY absorbs duplicates from the extraction bug."
+    columns:
+      - name: plan_id
+        data_tests: [unique, not_null]
+      - name: issuer_id
+        data_tests: [not_null]
+      - name: carrier_name
+        data_tests: [not_null]
+
+  - name: stg_rating
+    description: "Deduplicated CMS quality ratings. One row per plan. 0-star ratings converted to NULL (0 = not yet rated on the QRS scale)."
+    columns:
+      - name: plan_id
+        data_tests: [unique, not_null]

@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: dim_issuer
+    description: "One row per insurance carrier. Aggregated from stg_issuer."
+    columns:
+      - name: issuer_id
+        description: "Primary key — CMS issuer identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: carrier_name
+        data_tests:
+          - not_null
+      - name: plan_count
+        description: "Number of plans offered by this carrier in the market snapshot."
+        data_tests:
+          - not_null
+
+  - name: dim_plan
+    description: "Conformed plan dimension. One row per plan, joining plan attributes, carrier name, and CMS quality ratings."
+    columns:
+      - name: plan_id
+        description: "Primary key."
+        data_tests:
+          - unique
+          - not_null
+      - name: plan_name
+        data_tests:
+          - not_null
+      - name: metal_level
+        data_tests:
+          - not_null
+      - name: plan_type
+        data_tests:
+          - not_null
+      - name: premium
+        data_tests:
+          - not_null
+      - name: issuer_id
+        description: "Foreign key to dim_issuer. Null for plans whose issuer was not captured due to the extraction bug — resolves after next main.py run."
+        data_tests:
+          - relationships:
+              to: ref('dim_issuer')
+              field: issuer_id
+      - name: carrier_name
+        description: "Null for the 9 $0-deductible plans missing issuer data in the current snapshot. Resolves after next main.py run."

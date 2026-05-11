@@ -1,0 +1,95 @@
+version: 2
+
+models:
+  - name: fct_plan_benefits
+    description: "One row per plan × benefit_type × network_tier. Grain supports comparing benefit-level cost sharing across plans."
+    columns:
+      - name: benefit_key
+        description: "Surrogate primary key (md5 of plan_id, benefit_type, network_tier)."
+        data_tests:
+          - unique
+          - not_null
+      - name: plan_id
+        description: "Foreign key to dim_plan."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_plan')
+              field: plan_id
+      - name: benefit_type
+        description: "Standardized benefit category code from the Marketplace API."
+        data_tests:
+          - not_null
+      - name: benefit_name
+        description: "Human-readable benefit name."
+      - name: network_tier
+        description: "In-Network, Out-of-Network, or In-Network Tier 2."
+        data_tests:
+          - not_null
+      - name: covered
+        description: "Whether the benefit is covered under the plan."
+        data_tests:
+          - not_null
+      - name: copay
+        description: "Fixed dollar copay amount for this benefit and network tier."
+        data_tests:
+          - not_null
+      - name: coinsurance_rate
+        description: "Coinsurance percentage (0.0-1.0) after the deductible is met."
+        data_tests:
+          - not_null
+      - name: is_mental_health_benefit
+        description: "True for MENTAL_BEHAVIORAL_HEALTH_INPATIENT_SERVICES and MENTAL_BEHAVIORAL_HEALTH_OUTPATIENT_SERVICES benefit types."
+        data_tests:
+          - not_null
+
+
+  - name: fct_plan_mh_coverage_score
+    description: "One row per plan. Scores each plan's mental health coverage quality using copay, deductible, and CMS quality rating."
+    columns:
+      - name: plan_id
+        description: "Primary key — unique plan identifier from the Marketplace API."
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_plan')
+              field: plan_id
+      - name: carrier
+        description: "Insurance carrier name. Falls back to the CMS issuer ID prefix when carrier name is missing."
+        data_tests:
+          - not_null
+      - name: metal_tier
+        description: "ACA metal level: Catastrophic, Bronze, Silver, Gold, or Platinum."
+        data_tests:
+          - not_null
+      - name: plan_type
+        description: "Plan network type: HMO, PPO, EPO, or POS."
+        data_tests:
+          - not_null
+      - name: premium
+        description: "Monthly premium in dollars."
+        data_tests:
+          - not_null
+      - name: mh_benefits_covered
+        description: "Count of distinct MH benefit types (inpatient + outpatient) that are covered. Max 2."
+        data_tests:
+          - not_null
+      - name: avg_mh_copay
+        description: "Average in-network outpatient MH copay across cost-sharing tiers."
+        data_tests:
+          - not_null
+      - name: in_network_deductible
+        description: "Combined in-network EHB deductible (individual). Defaults to market max ($9,200) when missing."
+        data_tests:
+          - not_null
+      - name: in_network_moop
+        description: "In-network maximum out-of-pocket for EHB benefits (individual). Defaults to $9,200 when missing."
+        data_tests:
+          - not_null
+      - name: global_rating
+        description: "CMS overall plan quality rating (1-5 stars). 0 means not yet rated."
+      - name: coverage_score
+        description: "Composite MH coverage score (0-100): 20 pts coverage completeness, 40 pts copay efficiency, 25 pts deductible access, 15 pts CMS quality rating."
+        data_tests:
+          - not_null

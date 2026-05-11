@@ -37,7 +37,7 @@ plan_id = os.getenv("PLAN_ID")
 design_types = os.getenv("STANDARD_DESIGN_TYPES")
 mental_health_types = os.getenv("MENTAL_HEALTH_TYPES")
 log = logging.getLogger(__name__)
-dbt_root = root / 'dbt'
+dbt_root = root / 'marketplace_pipeline'
 
 ## Configure API 
 session = req.Session()
@@ -129,75 +129,73 @@ def runapi(fips, state, zip, year=2025) -> dict[str, pd.DataFrame]:
             offset += len(plans)
             if not plans or offset >= total:
                 break
-
-            for plan in all_plans:
-                for benefit in plan.get("benefits", []):
-                    for cs in benefit.get("cost_sharings", []):
-                        benefits.append({
-                            "plan_id": plan["id"],
-                            "plan_name": plan["name"],
-                            "premium": plan["premium"],
-                            "benefit_type": benefit["type"],
-                            "benefit_name": benefit["name"],
-                            "covered": benefit["covered"],
-                            "network_tier": cs["network_tier"],
-                            "copay": cs["copay_amount"],
-                            "coinsurance_rate": cs["coinsurance_rate"],
-                        })
-            
-                for ded in plan.get("deductibles", []):
-                    deds.append({
-                        "plan_id": plan["id"],
-                        "network_tier": ded.get("network_tier"),
-                        "type": ded.get("type"),
-                        "amount": ded.get("amount"),
-                        "family_cost": ded.get("family_cost"),
-                        "display_string": ded.get("display_string", ""),
-                    })
-
-                for moop in plan.get("moops", []):
-                    moops.append({
-                        "plan_id": plan["id"],
-                        "network_tier": moop.get("network_tier"),
-                        "type": moop.get("type"),
-                        "amount": moop.get("amount"),
-                        "csr": moop.get("csr"),
-                        "family_cost": moop.get("family_cost"),
-                        "individual": moop.get("individual"),
-                        "family": moop.get("family"),
-                    })
-
-                    rating = plan.get("quality_rating") or {}
-                    ratings.append({
-                        "plan_id": plan["id"],
-                        "available": rating.get("available"),
-                        "global_rating": rating.get("global_rating"),
-                        "clinical_quality_mgmt_rating": rating.get("clinical_quality_management_rating"),
-                        "enrollee_experience_rating": rating.get("enrollee_experience_rating"),
-                        "plan_efficiency_rating": rating.get("plan_efficiency_rating"),
-                        "global_not_rated_reason": rating.get("global_not_rated_reason"),
-                        "enrollee_experience_not_rated_reason": rating.get("enrollee_experience_not_rated_reason"),
-                        "plan_efficiency_not_rated_reason": rating.get("plan_efficiency_not_rated_reason"),
-                    })
-
-                    issuer = plan.get("issuer") or {}
-                    issuers.append({
-                        "plan_id": plan["id"],
-                        "issuer_id": issuer.get("id"),
-                        "name": issuer.get("name"),
-                        "eligible_dependents": issuer.get("eligible_dependants"),
-                        "address": issuer.get("address"),
-                        "state": issuer.get("state"),
-                        "individual_url": issuer.get("individual_url"),
-                        "shop_url": issuer.get("shop_url"),
-                        "toll_free": issuer.get("toll_free"),
-                        "tty_number": issuer.get("tty"),
-                    })
         except KeyError as e:
             log.error("Key not found! Terminating loop.")
             break
-           
+
+    for plan in all_plans:
+        for benefit in plan.get("benefits", []):
+            for cs in benefit.get("cost_sharings", []):
+                benefits.append({
+                    "plan_id": plan["id"],
+                    "plan_name": plan["name"],
+                    "premium": plan["premium"],
+                    "benefit_type": benefit["type"],
+                    "benefit_name": benefit["name"],
+                    "covered": benefit["covered"],
+                    "network_tier": cs["network_tier"],
+                    "copay": cs["copay_amount"],
+                    "coinsurance_rate": cs["coinsurance_rate"],
+                })
     
+        for ded in plan.get("deductibles", []):
+            deds.append({
+                "plan_id": plan["id"],
+                "network_tier": ded.get("network_tier"),
+                "type": ded.get("type"),
+                "amount": ded.get("amount"),
+                "family_cost": ded.get("family_cost"),
+                "display_string": ded.get("display_string", ""),
+            })
+
+        for moop in plan.get("moops", []):
+            moops.append({
+                "plan_id": plan["id"],
+                "network_tier": moop.get("network_tier"),
+                "type": moop.get("type"),
+                "amount": moop.get("amount"),
+                "csr": moop.get("csr"),
+                "family_cost": moop.get("family_cost"),
+                "individual": moop.get("individual"),
+                "family": moop.get("family"),
+            })
+
+        rating = plan.get("quality_rating") or {}
+        ratings.append({
+            "plan_id": plan["id"],
+            "available": rating.get("available"),
+            "global_rating": rating.get("global_rating"),
+            "clinical_quality_mgmt_rating": rating.get("clinical_quality_management_rating"),
+            "enrollee_experience_rating": rating.get("enrollee_experience_rating"),
+            "plan_efficiency_rating": rating.get("plan_efficiency_rating"),
+            "global_not_rated_reason": rating.get("global_not_rated_reason"),
+            "enrollee_experience_not_rated_reason": rating.get("enrollee_experience_not_rated_reason"),
+            "plan_efficiency_not_rated_reason": rating.get("plan_efficiency_not_rated_reason"),
+        })
+
+        issuer = plan.get("issuer") or {}
+        issuers.append({
+            "plan_id": plan["id"],
+            "issuer_id": issuer.get("id"),
+            "name": issuer.get("name"),
+            "state": issuer.get("state"),
+            "individual_url": issuer.get("individual_url"),
+            "shop_url": issuer.get("shop_url"),
+            "toll_free": issuer.get("toll_free"),
+            "tty_number": issuer.get("tty"),
+        })
+
+
 
     # ---- Sub dataframes
     benefits_df = pd.DataFrame(benefits)
@@ -207,12 +205,8 @@ def runapi(fips, state, zip, year=2025) -> dict[str, pd.DataFrame]:
     issuer_df = pd.DataFrame(issuers)
 
     log.info(f"Collected {len(all_plans)} of {total} plans")
-
-    plans_col_drop = ["benefits", "deductibles", "tiered_deductibles", "moops", "tiered_moops", "quality_rating", 
-                      "issuer", "benefits_url", "brochure_url", "formulary_url", "network_url", "oopc", "waiting_period_duration"]
     
     plans_df = pd.DataFrame(all_plans)
-    plans_df = plans_df.drop([col for col in plans_col_drop if col in plans_df.columns], axis=1)
 
     return {
         "benefits": benefits_df,
@@ -274,22 +268,14 @@ def run_dbt() -> None:
     Run dbt deps and build models. Steps: clean → deps → run.
     """
     
-    if not (dbt_root / "packages.yml").exists():
-        raise FileNotFoundError(f"packages.yml not found in {dbt_root}")
-
     with working_directory(dbt_root):
         log.info("Running dbt in %s", dbt_root)
         dbt = dbtRunner()
 
         _invoke(dbt, ["clean"])
         _invoke(dbt, ["deps"])
-
-        if not (dbt_root / "dbt_packages").exists():
-            raise FileNotFoundError(
-                f"dbt_packages not found after deps in {dbt_root}"
-            )
-
         _invoke(dbt, ["run", "--target", "dev", "--full-refresh"])
+        _invoke(dbt, ["build"])
         log.info("dbt models built successfully")
 
 
@@ -303,7 +289,7 @@ if __name__ == "__main__":
 
     # Run the API call and return dataframes:
     dfs = runapi(fips, state, zip_code)
-
+    
     # Create .csv artifacts and snapshots: 
     ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     snapshot_dir = Path(root) / "data" / "snapshots"
@@ -322,5 +308,5 @@ if __name__ == "__main__":
     finally:
         con.close()
 
-    # Run dbt
-
+    # Run dbt: 
+    run_dbt()
