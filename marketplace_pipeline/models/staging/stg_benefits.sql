@@ -4,6 +4,8 @@
 -- (benefits loop was inside while True, so page-1 plans were reprocessed N times).
 -- After the main.py fix this is a no-op.
 select distinct
+    county_fips,
+    county_name,
     plan_id,
     benefit_type,
     benefit_name,

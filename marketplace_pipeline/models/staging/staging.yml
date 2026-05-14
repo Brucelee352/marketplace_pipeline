@@ -2,61 +2,249 @@ version: 2
 
 models:
   - name: stg_plans
-    description: "Cleaned plan attributes. One row per plan. Parses disease_mgmt_programs from Python list repr to a comma-separated string."
+    description: >
+      **Grain:** one row per county per plan. `plan_key` is the surrogate PK.
+
+      * Thin view over `raw_data.plans`. Renames `id -> plan_id`, `type -> plan_type`.
+        - Adds `plan_key = md5(county_fips || '|' || plan_id)` as a composite surrogate
+          primary key; necessary because the same `plan_id` can appear in multiple
+          counties. 
+        - Converts `is_standardized_plan` and `hsa_eligible` from string to boolean. 
+        - Flattens `disease_mgmt_programs` from a DuckDB `VARCHAR[]` array to a
+          comma-separated string for BI compatibility. 
+        - Passes through 17 source columns, selecting the most analytically relevant.
     columns:
-      - name: plan_id
+      - name: plan_key
+        description: >
+          Surrogate primary key — `md5(county_fips || '|' || plan_id)`. Unique per
+          county x plan. Used as the join key in `dim_plan` and downstream fact models.
         data_tests: [unique, not_null]
+      - name: county_fips
+        description: Five-digit FIPS code identifying the county.
+        data_tests: [not_null]
+      - name: county_name
+        description: Human-readable county name.
+        data_tests: [not_null]
+      - name: plan_id
+        description: >
+          CMS 14-character ACA plan identifier. Not unique alone — the same plan can
+          appear in multiple counties with different premiums.
+        data_tests: [not_null]
       - name: plan_name
+        description: Plan marketing name as displayed on healthcare.gov.
         data_tests: [not_null]
       - name: premium
+        description: Monthly premium in dollars, cast to DECIMAL(10,2).
         data_tests: [not_null]
       - name: metal_level
+        description: ACA coverage tier — Catastrophic, Bronze, Silver, Gold, or Platinum.
         data_tests: [not_null]
       - name: plan_type
+        description: Plan network type — HMO, PPO, EPO, or POS.
         data_tests: [not_null]
+      - name: design_type
+        description: CMS plan design classification.
+      - name: is_standardized_plan
+        description: Whether the plan is a CMS standardized plan design, cast to BOOLEAN.
+      - name: hsa_eligible
+        description: >
+          Whether the plan qualifies for a Health Savings Account, cast to BOOLEAN.
+          Only 9 of 698 plans in the current dataset are HSA-eligible.
+      - name: has_national_network
+        description: Whether the plan includes a national provider network, cast to BOOLEAN.
+      - name: specialist_referral_required
+        description: >
+          Whether a referral is required to see a specialist, cast to BOOLEAN.
+          All plans in the current dataset return False.
+      - name: service_area_id
+        description: CMS service area identifier for the plan's coverage geography.
+      - name: state
+        description: Two-letter state abbreviation (always "FL" in this dataset).
+      - name: disease_mgmt_programs
+        description: >
+          Comma-separated list of disease management programs offered by the plan.
+          Converted from a DuckDB `VARCHAR[]` array using `array_to_string()`. NULL
+          when the plan offers no programs.
 
   - name: stg_benefits
-    description: "Cleaned benefit cost-sharing rows. One row per plan × benefit_type × network_tier. Adds is_mental_health_benefit flag."
+    description: >
+      **Grain:** one row per county per plan, benefit_type and network_tier.
+
+      * Thin view over `raw_data.benefits`. Casts `covered -> BOOLEAN`,
+        `copay -> DECIMAL(10,2)`, `coinsurance_rate -> DECIMAL(5,4)`. Adds
+        `is_mental_health_benefit` flag for the two MH benefit types.
+
+        - Uses `SELECT DISTINCT` to absorb ~7.8x duplicate rows from the page-accumulation
+          extraction bug (benefits loop was inside the pagination `while True`, so earlier
+          pages' plans were reprocessed on each new page fetch). 
+        - After the next clean extraction run, the DISTINCT is a no-op.
     columns:
+      - name: county_fips
+        description: County FIPS code.
+        data_tests: [not_null]
+      - name: county_name
+        description: County name.
+        data_tests: [not_null]
       - name: plan_id
+        description: Foreign key to `stg_plans.plan_id`.
         data_tests: [not_null]
       - name: benefit_type
+        description: CMS standardized benefit category code.
         data_tests: [not_null]
+      - name: benefit_name
+        description: Human-readable benefit name.
       - name: network_tier
+        description: "In-Network, Out-of-Network, or In-Network Tier 2."
         data_tests: [not_null]
       - name: covered
+        description: Whether the benefit is covered, cast to BOOLEAN.
+        data_tests: [not_null]
+      - name: copay
+        description: Fixed dollar copay, cast to DECIMAL(10,2).
+        data_tests: [not_null]
+      - name: coinsurance_rate
+        description: >
+          Patient coinsurance percentage after the deductible is met, cast to
+          DECIMAL(5,4). 0.0 = plan pays 100%; 0.5 = patient pays 50%.
         data_tests: [not_null]
       - name: is_mental_health_benefit
+        description: >
+          True for `MENTAL_BEHAVIORAL_HEALTH_INPATIENT_SERVICES` and
+          `MENTAL_BEHAVIORAL_HEALTH_OUTPATIENT_SERVICES` benefit types. Used to
+          filter downstream fact models to MH-relevant rows.
         data_tests: [not_null]
 
   - name: stg_deductibles
-    description: "Cleaned deductible rows. One row per plan × deductible_type × network_tier × family_cost."
+    description: >
+      **Grain:** one row per county per plan, deductible_type, network_tier and family_cost.
+
+      * Thin view over `raw_data.deductibles`. Renames `type -> deductible_type`.
+        - Casts `amount -> DECIMAL(10,2)`. Drops `display_string` (always empty in the
+          API response). 
+        - No deduplication needed, this table was not affected by the extraction bugs.
     columns:
+      - name: county_fips
+        description: County FIPS code.
+        data_tests: [not_null]
+      - name: county_name
+        description: County name.
+        data_tests: [not_null]
       - name: plan_id
+        description: Foreign key to `stg_plans.plan_id`.
         data_tests: [not_null]
+      - name: network_tier
+        description: "In-Network or Combined In-Out of Network."
       - name: deductible_type
+        description: >
+          Deductible category: "Combined Medical and Drug EHB Deductible",
+          "Medical EHB Deductible", or "Drug EHB Deductible".
         data_tests: [not_null]
+      - name: amount
+        description: Deductible dollar amount, cast to DECIMAL(10,2). Ranges from $0 to $9,200.
+      - name: family_cost
+        description: >
+          Cost application level — "Individual" for individual deductibles.
+          Used to filter to the individual-level deductible in fact models.
 
   - name: stg_moops
-    description: "Cleaned maximum out-of-pocket rows. One row per plan × moop_type × network_tier × csr × family_cost."
+    description: >
+      **Grain:** one row per county per plan, MOOP_type, network_tier, CSR_tier and family_cost.
+
+      * Thin view over `raw_data.moops`. Renames `type -> moop_type`. 
+        - Casts `amount -> DECIMAL(10,2)`, `individual -> BOOLEAN`, `family -> BOOLEAN`.
     columns:
+      - name: county_fips
+        description: County FIPS code.
+        data_tests: [not_null]
+      - name: county_name
+        description: County name.
+        data_tests: [not_null]
       - name: plan_id
+        description: Foreign key to `stg_plans.plan_id`.
         data_tests: [not_null]
+      - name: network_tier
+        description: "In-Network or Combined In-Out of Network."
       - name: moop_type
+        description: 
+          MOOP category — typically "Maximum Out of Pocket for Medical and Drug EHB
+          Benefits (Total)".
         data_tests: [not_null]
+      - name: amount
+        description: Maximum out-of-pocket dollar amount, cast to DECIMAL(10,2).
+      - name: csr
+        description: 
+          Cost-Sharing Reduction tier. Non-null only for Silver plans; values include
+          CSR-73, CSR-87, and CSR-94 for income-eligible enrollees.
+      - name: family_cost
+        description: Cost application level — "Individual" in the current dataset.
+      - name: individual
+        description: Whether this MOOP applies to an individual enrollee, cast to BOOLEAN.
+      - name: family
+        description: Whether this MOOP applies to a family unit, cast to BOOLEAN.
 
   - name: stg_issuer
-    description: "Deduplicated issuer data at the plan_id × issuer_id grain. GROUP BY absorbs duplicates from the extraction bug."
+    description: >
+      **Grain:** one row per plan_id, per issuer_id (not county-level).
+
+      * Issuer attributes (carrier name, URLs, phone) are plan-level metadata — they do not
+      vary by county. Filters out rows with null `issuer_id`.
+
+      *Note:* 9 plans with $0 deductibles are missing issuer rows in the current
+      snapshot due having no deductible rows, so the old code never appended their issuer data. 
+      These plans appear in `dim_plan` with NULL carrier fields via LEFT JOIN. This resolves on the next clean run.
     columns:
       - name: plan_id
+        description: CMS plan identifier. Unique in this model — one row per plan.
         data_tests: [unique, not_null]
       - name: issuer_id
+        description: CMS numeric carrier identifier.
         data_tests: [not_null]
       - name: carrier_name
+        description: Carrier marketing name (e.g., "Florida Blue (BlueCross BlueShield FL)").
         data_tests: [not_null]
+      - name: state
+        description: State where the issuer is licensed.
+      - name: individual_url
+        description: Carrier's individual market enrollment URL.
+      - name: shop_url
+        description: Carrier's SHOP (small business) enrollment URL.
+      - name: toll_free_number
+        description: Carrier toll-free member services phone number.
+      - name: tty_number
+        description: Carrier TTY/TDD accessibility phone number.
 
   - name: stg_rating
-    description: "Deduplicated CMS quality ratings. One row per plan. 0-star ratings converted to NULL (0 = not yet rated on the QRS scale)."
+    description: >
+      **Grain:** one row per plan_id (not county-level).
+
+      * Groups by `plan_id` with `MAX()` and `BOOL_OR()` aggregation to absorb duplicate rows from 
+        multi-county data. CMS quality ratings are national plan-level scores, they do not vary by county.
+
+        - Converts 0-star ratings to NULL using `NULLIF(..., 0)` because 0 on the CMS
+          Quality Rating System (QRS) means "not yet rated", not an actual score.
+          The `global_not_rated_reason` column preserves the explanation for unrated plans.
+
+        - 274 of 698 plans in the current dataset have `global_rating = 0` (not rated).
+          All rated plans score 2-4 stars.
     columns:
       - name: plan_id
+        description: CMS plan identifier. Unique in this model — one row per plan.
         data_tests: [unique, not_null]
+      - name: rating_available
+        description: >
+          Whether a CMS quality rating is published for this plan. Aggregated with
+          `BOOL_OR()` across counties.
+      - name: global_rating
+        description: >
+          CMS QRS overall composite rating (1–5 stars). NULL means not yet rated
+          (source value was 0). 274 plans are not yet rated in the current snapshot.
+      - name: clinical_quality_mgmt_rating
+        description: CMS sub-rating for clinical quality management (1–5 stars; NULL = not rated).
+      - name: enrollee_experience_rating
+        description: CMS sub-rating for enrollee experience (1–5 stars; NULL = not rated).
+      - name: plan_efficiency_rating
+        description: CMS sub-rating for plan efficiency (1–5 stars; NULL = not rated).
+      - name: global_not_rated_reason
+        description: >
+          Text explanation for why the plan has not been rated by CMS. Non-null only
+          when `global_rating` is NULL.

@@ -1,0 +1,56 @@
+version: 2
+
+snapshots:
+  - name: snp_plans
+    description: >
+      **Grain:** one row per plan_id per historical version. 
+      * SCD Type 2 snapshot of ACA plan attributes using dbt's `check` strategy.
+        - Tracks changes to six plan design attributes across pipeline runs:
+          `premium`, `metal_level`, `type`, `design_type`, `hsa_eligible`, and
+          `is_standardized_plan`. 
+        - When any of these columns change between runs, dbt
+          closes the current record (sets `dbt_valid_to`) and inserts a new active
+          record. Rows where nothing changes are untouched.
+        - raw_data.plans` contains one row per county x plan,
+          but the snapshot requires one row per plan (unique on `plan_id`). The query
+          deduplicates with `any_value() GROUP BY id` before snapshotting; plan design
+          attributes are identical across counties for the same `plan_id`, so `any_value()` is safe.
+        - Materialized in the `snapshots` schema of `marketplace.duckdb` 
+          (separate from the `main` schema used by staging/marts/facts models).
+
+      **dbt-managed columns**:
+        - `dbt_scd_id`: Surrogate key for the historical record 
+        - `dbt_valid_from': When dbt first observed or detected this version 
+        - dbt_valid_to`: When this version was superseded (`NULL` = current record) 
+        - `dbt_updated_at`: System timestamp used as the change boundary 
+        - *Querying current records:* SELECT * FROM snapshots.snp_plans WHERE dbt_valid_to IS NULL;
+        - *Querying historical records:* SELECT * FROM snapshots.snp_plans WHERE plan_id = '49004FL0010001' ORDER BY dbt_valid_from;
+
+    columns:
+      - name: id
+        description: >
+          CMS 14-character ACA plan identifier: the natural key and `unique_key`
+          for the check strategy. One active record per plan_id at any time.
+      - name: name
+        description: >
+          Plan marketing name. Aggregated from multi-county source with
+          `any_value()`, identical across counties for the same plan.
+      - name: premium
+        description: >
+          Monthly premium in dollars. A tracked column, changes trigger a new
+          SCD Type 2 record. CMS plan premiums can update between open enrollment
+          periods or when household configuration changes.
+      - name: metal_level
+        description: ACA coverage tier. A tracked column.
+      - name: type
+        description: Plan network type (HMO, PPO, EPO, POS). A tracked column.
+      - name: design_type
+        description: CMS plan design classification. A tracked column.
+      - name: hsa_eligible
+        description: Whether the plan qualifies for an HSA, cast to BOOLEAN. A tracked column.
+      - name: is_standardized_plan
+        description: Whether the plan is a CMS standardized design, cast to BOOLEAN. A tracked column.
+      - name: service_area_id
+        description: CMS service area identifier. Not tracked — changes do not trigger a new record.
+      - name: state
+        description: Two-letter state abbreviation. Not tracked.

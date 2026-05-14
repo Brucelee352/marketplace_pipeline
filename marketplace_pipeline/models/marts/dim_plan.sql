@@ -1,8 +1,12 @@
 {{ config(materialized='table') }}
 
--- One row per plan. Conformed plan dimension joining plan attributes,
--- carrier name, and CMS quality ratings.
+-- One row per county × plan (plan_key is the PK).
+-- stg_issuer and stg_rating are plan-level (not county-level), so they join
+-- on plan_id alone and their data is replicated across the county rows.
 select
+    p.plan_key,
+    p.county_fips,
+    p.county_name,
     p.plan_id,
     p.plan_name,
     p.premium,
@@ -24,6 +28,6 @@ select
     r.enrollee_experience_rating,
     r.plan_efficiency_rating,
     r.global_not_rated_reason
-from {{ ref('stg_plans') }}  p
+from {{ ref('stg_plans') }}   p
 left join {{ ref('stg_issuer') }} i on p.plan_id = i.plan_id
 left join {{ ref('stg_rating') }} r on p.plan_id = r.plan_id

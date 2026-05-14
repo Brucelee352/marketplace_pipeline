@@ -3,10 +3,197 @@ version: 2
 sources:
   - name: raw_data
     schema: raw_data
+    description: >
+      Raw data extracted from the CMS Marketplace API (`POST /plans/search`) by
+      `scripts/main.py` and loaded into the `raw_data` schema of `marketplace.duckdb`.
+      Each table corresponds to one nested data structure from the API response,
+      unnested and flattened during extraction. All tables include `county_fips` and
+      `county_name` as the first two columns, added during the multi-county extraction
+      loop covering Marion, Hillsborough, Broward, and Orange counties (FL, 2025).
+
     tables:
       - name: plans
+        description: >
+          One row per county × plan. Top-level plan attributes from the Marketplace API.
+          The same `id` can appear in multiple counties — the grain is county × plan.
+          Embedded JSON fields (`benefits`, `deductibles`, `moops`, `issuer`,
+          `quality_rating`) are unnested into their own tables during extraction.
+        columns:
+          - name: county_fips
+            description: Five-digit FIPS code identifying the county (e.g., "12083" for Marion).
+          - name: county_name
+            description: Human-readable county name (Marion, Hillsborough, Broward, Orange).
+          - name: id
+            description: >
+              CMS 14-character ACA plan identifier (e.g., "49004FL0010001"). Encodes
+              issuer ID, state, and plan sequence. Not unique within this table — the
+              same plan can appear once per county where it is offered.
+          - name: name
+            description: Plan marketing name as displayed on healthcare.gov.
+          - name: premium
+            description: Monthly premium in dollars for the configured household profile.
+          - name: metal_level
+            description: ACA metal coverage tier — Catastrophic, Bronze, Silver, Gold, or Platinum.
+          - name: type
+            description: Plan network type — HMO, PPO, EPO, or POS.
+          - name: design_type
+            description: CMS plan design classification.
+          - name: hsa_eligible
+            description: >
+              Whether the plan qualifies for a Health Savings Account. Only 9 of 698
+              plans in the current dataset are HSA-eligible, concentrated in EPO and
+              PPO plan types.
+          - name: specialist_referral_required
+            description: >
+              Whether the plan requires a referral to see a specialist. All plans in
+              the current dataset return False.
+          - name: is_standardized_plan
+            description: Whether the plan is a CMS standardized plan design.
+          - name: service_area_id
+            description: CMS service area identifier for the plan's coverage geography.
+
       - name: benefits
+        description: >
+          One row per county × plan × benefit_type × cost_sharing_tier. Unnested from
+          the nested `benefits[].cost_sharings[]` arrays in each plan API response.
+          Covers all 13 Essential Health Benefit categories returned by the API,
+          including two mental health types.
+
+          **Note:** May contain ~7.8× duplicate rows per benefit due to a resolved
+          page-accumulation extraction bug (the accumulation block was previously inside
+          the pagination `while True` loop). Absorbed by `SELECT DISTINCT` in
+          `stg_benefits`.
+        columns:
+          - name: county_fips
+            description: County FIPS code.
+          - name: county_name
+            description: County name.
+          - name: plan_id
+            description: Foreign key to `raw_data.plans.id`.
+          - name: benefit_type
+            description: >
+              CMS standardized benefit category code. Mental health types:
+              `MENTAL_BEHAVIORAL_HEALTH_INPATIENT_SERVICES` and
+              `MENTAL_BEHAVIORAL_HEALTH_OUTPATIENT_SERVICES`.
+          - name: benefit_name
+            description: Human-readable benefit name.
+          - name: covered
+            description: >
+              Whether the benefit is covered. All rows in the current dataset are True —
+              the API only returns covered benefits for the configured household.
+          - name: network_tier
+            description: "In-Network, Out-of-Network, or In-Network Tier 2."
+          - name: copay
+            description: Fixed dollar copay for this benefit and network tier.
+          - name: coinsurance_rate
+            description: >
+              Patient coinsurance percentage after the deductible is met (0.0–1.0).
+              0.0 = plan pays 100%; 0.5 = patient pays 50% of the allowed amount.
+
       - name: deductibles
+        description: >
+          One row per county × plan × deductible_type × network_tier. Unnested from
+          `plan.deductibles[]`. Covers combined, medical-only, and drug-only EHB
+          deductible types at individual and family cost levels.
+        columns:
+          - name: county_fips
+            description: County FIPS code.
+          - name: county_name
+            description: County name.
+          - name: plan_id
+            description: Foreign key to `raw_data.plans.id`.
+          - name: type
+            description: >
+              Deductible category: "Combined Medical and Drug EHB Deductible",
+              "Medical EHB Deductible", or "Drug EHB Deductible".
+          - name: network_tier
+            description: "In-Network or Combined In-Out of Network."
+          - name: amount
+            description: Deductible dollar amount. Ranges from $0 to $9,200 (ACA statutory max).
+          - name: family_cost
+            description: Cost application level — "Individual" in the current dataset.
+
       - name: moops
+        description: >
+          One row per county × plan × MOOP_type × network_tier × CSR_tier. Unnested
+          from `plan.moops[]`. Maximum out-of-pocket amounts for EHB benefits.
+          CSR (Cost-Sharing Reduction) tiers apply to Silver plans only.
+        columns:
+          - name: county_fips
+            description: County FIPS code.
+          - name: county_name
+            description: County name.
+          - name: plan_id
+            description: Foreign key to `raw_data.plans.id`.
+          - name: type
+            description: >
+              MOOP category — typically "Maximum Out of Pocket for Medical and Drug EHB
+              Benefits (Total)".
+          - name: network_tier
+            description: "In-Network or Combined In-Out of Network."
+          - name: amount
+            description: Maximum out-of-pocket dollar amount.
+          - name: csr
+            description: >
+              Cost-Sharing Reduction variant. Non-null only for Silver plans, which may
+              carry CSR-73, CSR-87, or CSR-94 variants for income-eligible enrollees.
+          - name: family_cost
+            description: Cost application level — "Individual" in the current dataset.
+
       - name: issuer
+        description: >
+          One row per county × plan with carrier-level contact and URL metadata.
+          Unnested from the `plan.issuer` object in each API response. May contain
+          ~7.5× duplicate rows due to a resolved extraction bug (issuer rows were
+          previously appended inside the MOOP loop). Absorbed by `GROUP BY` in
+          `stg_issuer`.
+        columns:
+          - name: county_fips
+            description: County FIPS code.
+          - name: county_name
+            description: County name.
+          - name: plan_id
+            description: Foreign key to `raw_data.plans.id`.
+          - name: issuer_id
+            description: CMS numeric issuer (carrier) identifier.
+          - name: name
+            description: Carrier marketing name (e.g., "Florida Blue (BlueCross BlueShield FL)").
+          - name: state
+            description: State where the issuer is licensed.
+          - name: individual_url
+            description: Carrier's individual market enrollment URL.
+          - name: toll_free
+            description: Carrier toll-free member services phone number.
+
       - name: rating
+        description: >
+          One row per county × plan with CMS Quality Rating System (QRS) scores.
+          Unnested from `plan.quality_rating`. A value of 0 in any rating field means
+          "not yet rated" on the 1–5 star scale — not an actual score. Converted to
+          NULL in `stg_rating`.
+
+          274 of 698 plans in the current dataset carry a rating of 0 (not yet rated).
+          All rated plans score 2–4 stars; no plans received a 5-star or 1-star rating
+          in this market.
+
+          May contain duplicate rows (same resolved extraction bug as `issuer`);
+          absorbed by `GROUP BY` in `stg_rating`.
+        columns:
+          - name: county_fips
+            description: County FIPS code.
+          - name: county_name
+            description: County name.
+          - name: plan_id
+            description: Foreign key to `raw_data.plans.id`.
+          - name: available
+            description: Whether a CMS quality rating is available for this plan.
+          - name: global_rating
+            description: >
+              Overall CMS QRS composite rating (0–5 stars). 0 means not yet rated.
+              Converted to NULL in `stg_rating`.
+          - name: clinical_quality_mgmt_rating
+            description: CMS sub-rating for clinical quality management (0–5 stars; 0 = not rated).
+          - name: enrollee_experience_rating
+            description: CMS sub-rating for enrollee experience (0–5 stars; 0 = not rated).
+          - name: plan_efficiency_rating
+            description: CMS sub-rating for plan efficiency (0–5 stars; 0 = not rated).

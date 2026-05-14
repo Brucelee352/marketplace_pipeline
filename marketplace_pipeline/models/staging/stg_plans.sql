@@ -1,6 +1,9 @@
 {{ config(materialized='view') }}
 
 select
+    county_fips,
+    county_name,
+    md5(county_fips || '|' || id)                            as plan_key,
     id                                                       as plan_id,
     name                                                     as plan_name,
     cast(premium as decimal(10, 2))                          as premium,
@@ -13,6 +16,5 @@ select
     cast(specialist_referral_required as boolean)            as specialist_referral_required,
     service_area_id,
     state,
-    -- already a VARCHAR[] array from pandas; flatten to comma-separated string for BI compatibility
     nullif(array_to_string(disease_mgmt_programs, ', '), '') as disease_mgmt_programs
 from {{ source('raw_data', 'plans') }}

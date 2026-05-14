@@ -2,94 +2,192 @@ version: 2
 
 models:
   - name: fct_plan_benefits
-    description: "One row per plan × benefit_type × network_tier. Grain supports comparing benefit-level cost sharing across plans."
+    description: >
+      **Grain:** One row per county,  plan,  benefit_type and network_tier.
+
+      Passes through all benefit cost-sharing rows from `stg_benefits` enriched
+      with plan metadata from `stg_plans`. 
+
+      Useful for benefit-level comparisons across plans and counties - e.g., which
+      plans have $0 MH copays, or how in-network vs. out-of-network cost sharing
+      differs. The `benefit_key` surrogate uniquely identifies each row.
     columns:
       - name: benefit_key
-        description: "Surrogate primary key (md5 of plan_id, benefit_type, network_tier)."
+        description: >
+          Surrogate primary key - `md5(county_fips || '|' || plan_id || '|' ||
+          benefit_type || '|' || network_tier)`. 
+          
+          Unique per county x plan x benefit type x network tier.
         data_tests:
           - unique
           - not_null
-      - name: plan_id
-        description: "Foreign key to dim_plan."
+      - name: county_fips
+        description: Five-digit FIPS code identifying the county.
         data_tests:
           - not_null
-          - relationships:
-              to: ref('dim_plan')
-              field: plan_id
+      - name: county_name
+        description: Human-readable county name.
+        data_tests:
+          - not_null
+      - name: plan_id
+        description: >
+          CMS 14-character plan identifier. Not unique in this table, join to
+          `dim_plan` on `county_fips + plan_id` to resolve the county per plan row.
+        data_tests:
+          - not_null
+      - name: plan_name
+        description: Plan marketing name from `stg_plans`.
+      - name: metal_level
+        description: ACA coverage tier - Catastrophic, Bronze, Silver, Gold, or Platinum.
       - name: benefit_type
-        description: "Standardized benefit category code from the Marketplace API."
+        description: >
+          CMS standardized benefit category code, mental health types for in and outpatient services.
         data_tests:
           - not_null
       - name: benefit_name
-        description: "Human-readable benefit name."
+        description: Human-readable benefit name (e.g., "Mental/Behavioral Health Inpatient Services").
       - name: network_tier
-        description: "In-Network, Out-of-Network, or In-Network Tier 2."
+        description: "Coverage network context: In-Network, Out-of-Network, or In-Network Tier 2."
         data_tests:
           - not_null
       - name: covered
-        description: "Whether the benefit is covered under the plan."
+        description: >
+          Whether the benefit is covered. All rows in the current dataset are True, the API only returns covered benefits for the configured household profile.
         data_tests:
           - not_null
       - name: copay
-        description: "Fixed dollar copay amount for this benefit and network tier."
+        description: Fixed dollar copay for this benefit and network tier, cast to DECIMAL(10,2).
         data_tests:
           - not_null
       - name: coinsurance_rate
-        description: "Coinsurance percentage (0.0-1.0) after the deductible is met."
+        description: >
+          Patient coinsurance rate (0.0-1.0) after the deductible is met.
+          0.0 = plan pays 100%; 0.5 = patient pays 50% of the allowed amount.
         data_tests:
           - not_null
       - name: is_mental_health_benefit
-        description: "True for MENTAL_BEHAVIORAL_HEALTH_INPATIENT_SERVICES and MENTAL_BEHAVIORAL_HEALTH_OUTPATIENT_SERVICES benefit types."
+        description: True for `MENTAL_BEHAVIORAL_HEALTH_INPATIENT_SERVICES` and
+          `MENTAL_BEHAVIORAL_HEALTH_OUTPATIENT_SERVICES` benefit types. Used to
+          filter to Mental Health-relevant rows in downstream analysis.
         data_tests:
           - not_null
 
 
   - name: fct_plan_mh_coverage_score
-    description: "One row per plan. Scores each plan's mental health coverage quality using copay, deductible, and CMS quality rating."
+    description: >
+      **Grain:** one row per county per plan. `plan_key` is the PK.
+
+      The primary analytical output of the pipeline. Scores each county per plan
+      combination on a 0-100 scale measuring the quality of its mental health
+      benefit coverage across four dimensions:
+
+      
+      * coverage_score:
+        - (mh_benefits_covered / 2)  x 20   -- MH coverage completeness   (0-20 pts)
+        - (1 - avg_mh_copay / 125)   x 40   -- Outpatient copay efficiency (0-40 pts)
+        - (1 - deductible / 9200)    x 25   -- Deductible access           (0-25 pts)
+        - (global_rating / 5)        x 15   -- CMS quality rating          (0-15 pts)
+      
+
+      * Calibration constants: 
+        - Max observed outpatient MH copay = $125 
+        - ACA statutory deductible maximum = $9,200 
+        - CMS QRS scale = 1-5 stars.
+      
+      A plan with no CMS rating contributes 0 to the rating component.
+
+      Built from three CTEs - `mh_benefits` (copay aggregation), `deductibles`
+      (individual in-network deductible), and `moops` (individual in-network MOOP)
+      - each grouped by `(county_fips, plan_id)`, then joined to `dim_plan` on
+      the same composite key to pull carrier and rating columns.
+
+      Missing deductible or MOOP rows (9 plans with $0 deductibles) are filled
+      with the market maximum ($9,200) via `COALESCE`, which conservatively penalizes
+      those plans on the deductible access dimension until the data is clean.
     columns:
-      - name: plan_id
-        description: "Primary key — unique plan identifier from the Marketplace API."
+      - name: plan_key
+        description: >
+          Surrogate primary key - `md5(county_fips || '|' || plan_id)`. Foreign key
+          to `dim_plan.plan_key`. Unique per county per plan.
         data_tests:
           - unique
           - not_null
           - relationships:
               to: ref('dim_plan')
-              field: plan_id
+              field: plan_key
+      - name: county_fips
+        description: Five-digit FIPS code identifying the county.
+        data_tests:
+          - not_null
+      - name: county_name
+        description: Human-readable county name (Marion, Hillsborough, Broward, or Orange).
+        data_tests:
+          - not_null
+      - name: plan_id
+        description: 
+          CMS 14-character plan identifier. Not unique alone - the same plan appears
+          once per county where it is offered.
+        data_tests:
+          - not_null
+      - name: plan_name
+        description: Plan marketing name from `dim_plan`.
       - name: carrier
-        description: "Insurance carrier name. Falls back to the CMS issuer ID prefix when carrier name is missing."
+        description: 
+          Insurance carrier name from `dim_plan.carrier_name`. Falls back to the
+          first 5 characters of `plan_id` (the CMS issuer ID prefix) when carrier
+          name is NULL due to the extraction bug.
         data_tests:
           - not_null
       - name: metal_tier
-        description: "ACA metal level: Catastrophic, Bronze, Silver, Gold, or Platinum."
+        description: ACA metal level - Catastrophic, Bronze, Silver, Gold, or Platinum.
         data_tests:
           - not_null
       - name: plan_type
-        description: "Plan network type: HMO, PPO, EPO, or POS."
+        description: Plan network type - HMO, PPO, EPO, or POS.
         data_tests:
           - not_null
       - name: premium
-        description: "Monthly premium in dollars."
+        description: Monthly premium in dollars, cast to DECIMAL(10,2).
         data_tests:
           - not_null
       - name: mh_benefits_covered
-        description: "Count of distinct MH benefit types (inpatient + outpatient) that are covered. Max 2."
+        description: 
+          Count of distinct mental health benefit types that are covered
+          (inpatient + outpatient). Maximum possible value is 2. A value of 2
+          means the plan covers both MH inpatient and outpatient services.
         data_tests:
           - not_null
       - name: avg_mh_copay
-        description: "Average in-network outpatient MH copay across cost-sharing tiers."
+        description: 
+          Average in-network outpatient MH copay across all cost-sharing tiers
+          for this county x plan. Used in the copay efficiency scoring component.
+          Ranges from $0 (plans with coinsurance-only MH cost sharing) to $125
+          (the market maximum observed in this dataset).
         data_tests:
           - not_null
       - name: in_network_deductible
-        description: "Combined in-network EHB deductible (individual). Defaults to market max ($9,200) when missing."
+        description: 
+          Combined in-network EHB deductible at the individual level, cast to
+          DECIMAL(10,2). Defaults to $9,200 (the ACA statutory maximum) via
+          COALESCE when the plan has no deductible rows. Ranges $0-$9,200.
         data_tests:
           - not_null
       - name: in_network_moop
-        description: "In-network maximum out-of-pocket for EHB benefits (individual). Defaults to $9,200 when missing."
+        description: 
+          In-network maximum out-of-pocket for EHB benefits at the individual level,
+          cast to DECIMAL(10,2). Defaults to $9,200 via COALESCE when missing.
         data_tests:
           - not_null
       - name: global_rating
-        description: "CMS overall plan quality rating (1-5 stars). 0 means not yet rated."
+        description: 
+          CMS QRS overall composite rating (1-5 stars) from `dim_plan`. NULL means
+          the plan has not yet been rated (274 of 698 plans in the current snapshot).
+          Unrated plans score 0 on the rating scoring component.
       - name: coverage_score
-        description: "Composite MH coverage score (0-100): 20 pts coverage completeness, 40 pts copay efficiency, 25 pts deductible access, 15 pts CMS quality rating."
+        description: Composite mental health coverage score on a 0-100 scale. Weighted sum of
+          four elements. Coverage completeness (max 20 pts), outpatient copay
+          efficiency (max 40 pts), deductible access (max 25 pts), and CMS quality
+          rating (max 15 pts). Higher is better. Plans with both MH benefit types
+          covered, low copays, low deductibles, and high CMS ratings score near 100.
         data_tests:
           - not_null

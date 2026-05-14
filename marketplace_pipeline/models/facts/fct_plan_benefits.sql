@@ -1,7 +1,9 @@
 {{ config(materialized='table') }}
 
 select
-    md5(plan_id || '|' || benefit_type || '|' || network_tier) as benefit_key,
+    md5(county_fips || '|' || plan_id || '|' || benefit_type || '|' || network_tier) as benefit_key,
+    county_fips,
+    county_name,
     plan_id,
     benefit_type,
     benefit_name,

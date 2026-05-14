@@ -2,46 +2,142 @@ version: 2
 
 models:
   - name: dim_issuer
-    description: "One row per insurance carrier. Aggregated from stg_issuer."
+    description: >
+      **Grain:** one row per insurance carrier (`issuer_id` is the PK).
+
+      * Built from `stg_issuer` by collapsing the plan-level rows into a single carrier-level row. 
+        - Adds `plan_count` — the number of distinct plans that carrier offers across all four counties in this market snapshot. 
+        - Contact metadata (URLs, phone numbers) is carried through from the API response.
+        - Used in `dim_plan` via LEFT JOIN on `issuer_id`, and in the Dash app carrier bubble chart.
     columns:
       - name: issuer_id
-        description: "Primary key — CMS issuer identifier."
+        description: >
+          CMS numeric carrier identifier. Surrogate primary key in this model.
+          Originates from `raw_data.issuer.issuer_id`.
         data_tests:
           - unique
           - not_null
       - name: carrier_name
+        description: Carrier marketing name (e.g., "Florida Blue (BlueCross BlueShield FL)").
         data_tests:
           - not_null
+      - name: state
+        description: State where the issuer is licensed to operate (always "FL" in this dataset).
+      - name: individual_url
+        description: Carrier's individual market enrollment URL from the Marketplace API.
+      - name: shop_url
+        description: Carrier's SHOP (small business) enrollment URL.
+      - name: toll_free_number
+        description: Carrier toll-free member services phone number.
+      - name: tty_number
+        description: Carrier TTY/TDD accessibility phone number.
       - name: plan_count
-        description: "Number of plans offered by this carrier in the market snapshot."
+        description: >
+          Count of distinct plans offered by this carrier across all four Florida
+          counties in the current snapshot. Computed as `COUNT(DISTINCT plan_id)`
+          in `dim_issuer.sql`. Used in the carrier bubble chart.
         data_tests:
           - not_null
 
   - name: dim_plan
-    description: "Conformed plan dimension. One row per plan, joining plan attributes, carrier name, and CMS quality ratings."
+    description: >
+      **Grain:** one row per county per plan. `plan_key` is the surrogate PK.
+
+      * The LEFT JOIN on issuer and rating is intentional: 9 plans with $0
+      deductibles are missing issuer rows in the current snapshot due to a
+      pre-fix extraction bug; they appear with NULL carrier fields and resolve
+      on the next clean pipeline run. Downstream fact models (`fct_plan_mh_coverage_score`, `fct_plan_benefits`)
+      join to this dimension on `plan_key` (or the equivalent `county_fips + plan_id`
+      composite) to preserve county context.
+        - The same `plan_id` can appear in up to 4 rows (one per county), each with
+          its own `plan_key`. 
+        - Carrier name, issuer ID, and CMS quality ratings are identical across these rows — they are national plan-level attributes. 
+        - Premium and network availability can theoretically differ by county.
+
+     
     columns:
-      - name: plan_id
-        description: "Primary key."
+      - name: plan_key
+        description: >
+          Surrogate primary key — `md5(county_fips || '|' || plan_id)`. Unique per
+          county x plan. Propagated from `stg_plans`. Used as the join key in all
+          downstream fact models.
         data_tests:
           - unique
           - not_null
+      - name: county_fips
+        description: Five-digit FIPS code identifying the county.
+        data_tests:
+          - not_null
+      - name: county_name
+        description: Human-readable county name (Marion, Hillsborough, Broward, or Orange).
+        data_tests:
+          - not_null
+      - name: plan_id
+        description: >
+          CMS 14-character ACA plan identifier. Not unique in this model — the same
+          plan appears once per county where it is offered.
+        data_tests:
+          - not_null
       - name: plan_name
+        description: Plan marketing name as displayed on healthcare.gov.
         data_tests:
           - not_null
       - name: metal_level
+        description: ACA coverage tier — Catastrophic, Bronze, Silver, Gold, or Platinum.
         data_tests:
           - not_null
       - name: plan_type
+        description: Plan network type — HMO, PPO, EPO, or POS.
         data_tests:
           - not_null
       - name: premium
+        description: Monthly premium in dollars for the configured household profile, cast to DECIMAL(10,2).
         data_tests:
           - not_null
+      - name: design_type
+        description: CMS plan design classification.
+      - name: is_standardized_plan
+        description: Whether the plan is a CMS standardized plan design, cast to BOOLEAN.
+      - name: hsa_eligible
+        description: >
+          Whether the plan qualifies for a Health Savings Account. Only 9 of 698
+          plans in the current dataset are HSA-eligible.
+      - name: has_national_network
+        description: Whether the plan includes a national provider network.
+      - name: specialist_referral_required
+        description: >
+          Whether the plan requires a referral to see a specialist. All plans in
+          the current dataset return False.
+      - name: service_area_id
+        description: CMS service area identifier for the plan's coverage geography.
+      - name: disease_mgmt_programs
+        description: >
+          Comma-separated list of disease management programs. Converted from a
+          DuckDB `VARCHAR[]` array in `stg_plans`. NULL when the plan offers none.
       - name: issuer_id
-        description: "Foreign key to dim_issuer. Null for plans whose issuer was not captured due to the extraction bug — resolves after next main.py run."
+        description: >
+          CMS numeric carrier identifier. Foreign key to `dim_issuer`. NULL for the
+          9 plans missing issuer data in the current snapshot due to the extraction
+          bug — resolves after the next clean `main.py` run.
         data_tests:
           - relationships:
               to: ref('dim_issuer')
               field: issuer_id
       - name: carrier_name
-        description: "Null for the 9 $0-deductible plans missing issuer data in the current snapshot. Resolves after next main.py run."
+        description: >
+          Carrier marketing name from `stg_issuer`. NULL for the 9 $0-deductible
+          plans missing issuer data in the current snapshot.
+      - name: individual_url
+        description: Carrier's individual market enrollment URL. NULL for plans missing issuer data.
+      - name: toll_free_number
+        description: Carrier toll-free member services phone number. NULL for plans missing issuer data.
+      - name: global_rating
+        description: >
+          CMS QRS overall composite rating (1-5 stars). NULL means not yet rated
+          (274 of 698 plans in the current snapshot). Sourced from `stg_rating`.
+      - name: clinical_quality_mgmt_rating
+        description: CMS sub-rating for clinical quality management (1-5 stars; NULL = not rated).
+      - name: enrollee_experience_rating
+        description: CMS sub-rating for enrollee experience (1-5 stars; NULL = not rated).
+      - name: plan_efficiency_rating
+        description: CMS sub-rating for plan efficiency (1-5 stars; NULL = not rated).
