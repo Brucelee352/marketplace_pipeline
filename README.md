@@ -50,7 +50,6 @@ scripts/app.py           <- Dash app, reads from data/*.csv
 | Transform     | `dbt-duckdb` 1.9+             |
 | Storage       | DuckDB 1.5+                   |
 | Visualization | Dash 2.18+, Plotly 5.24+      |
-| Validation    | `pandera` (schema guards)     |
 | Runtime       | Python 3.13, `uv`             |
 
 ---
