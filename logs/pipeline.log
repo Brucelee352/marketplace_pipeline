@@ -628,3 +628,100 @@
 2026-05-13 16:30:41,068 - INFO - Transforming data using dbt...
 2026-05-13 16:30:41,068 - INFO - Running dbt against C:\Users\bruce\Documents\GitHub\marketplace_pipeline\marketplace_pipeline
 2026-05-13 16:30:43,748 - INFO - dbt build completed successfully
+2026-05-14 13:19:08,286 - INFO - Running Pipeline...
+2026-05-14 13:19:08,288 - INFO - Sourcing data from API and compiling dataframes.
+2026-05-14 13:19:08,804 - INFO - [Marion] Page 1: got 10 plans (10/159)
+2026-05-14 13:19:08,977 - INFO - [Marion] Page 1: got 10 plans (20/159)
+2026-05-14 13:19:09,159 - INFO - [Marion] Page 1: got 10 plans (30/159)
+2026-05-14 13:19:09,388 - INFO - [Marion] Page 2: got 10 plans (40/159)
+2026-05-14 13:19:09,610 - INFO - [Marion] Page 2: got 10 plans (50/159)
+2026-05-14 13:19:09,785 - INFO - [Marion] Page 3: got 10 plans (60/159)
+2026-05-14 13:19:09,960 - INFO - [Marion] Page 3: got 10 plans (70/159)
+2026-05-14 13:19:10,146 - INFO - [Marion] Page 3: got 10 plans (80/159)
+2026-05-14 13:19:10,346 - INFO - [Marion] Page 4: got 10 plans (90/159)
+2026-05-14 13:19:10,521 - INFO - [Marion] Page 4: got 10 plans (100/159)
+2026-05-14 13:19:10,694 - INFO - [Marion] Page 5: got 10 plans (110/159)
+2026-05-14 13:19:10,892 - INFO - [Marion] Page 5: got 10 plans (120/159)
+2026-05-14 13:19:11,080 - INFO - [Marion] Page 5: got 10 plans (130/159)
+2026-05-14 13:19:11,258 - INFO - [Marion] Page 6: got 10 plans (140/159)
+2026-05-14 13:19:11,428 - INFO - [Marion] Page 6: got 10 plans (150/159)
+2026-05-14 13:19:11,625 - INFO - [Marion] Page 7: got 9 plans (159/159)
+2026-05-14 13:19:11,627 - INFO - [Marion] Collected 159 of 159 plans
+2026-05-14 13:19:11,641 - INFO - Completed county: Marion (12083)
+2026-05-14 13:19:11,867 - INFO - [Hillsborough] Page 1: got 10 plans (10/165)
+2026-05-14 13:19:12,101 - INFO - [Hillsborough] Page 1: got 10 plans (20/165)
+2026-05-14 13:19:12,317 - INFO - [Hillsborough] Page 1: got 10 plans (30/165)
+2026-05-14 13:19:12,567 - INFO - [Hillsborough] Page 2: got 10 plans (40/165)
+2026-05-14 13:19:12,789 - INFO - [Hillsborough] Page 2: got 10 plans (50/165)
+2026-05-14 13:19:12,976 - INFO - [Hillsborough] Page 3: got 10 plans (60/165)
+2026-05-14 13:19:13,169 - INFO - [Hillsborough] Page 3: got 10 plans (70/165)
+2026-05-14 13:19:13,350 - INFO - [Hillsborough] Page 3: got 10 plans (80/165)
+2026-05-14 13:19:13,537 - INFO - [Hillsborough] Page 4: got 10 plans (90/165)
+2026-05-14 13:19:13,700 - INFO - [Hillsborough] Page 4: got 10 plans (100/165)
+2026-05-14 13:19:14,015 - INFO - [Hillsborough] Page 5: got 10 plans (110/165)
+2026-05-14 13:19:14,408 - INFO - [Hillsborough] Page 5: got 10 plans (120/165)
+2026-05-14 13:19:14,648 - INFO - [Hillsborough] Page 5: got 10 plans (130/165)
+2026-05-14 13:19:14,897 - INFO - [Hillsborough] Page 6: got 10 plans (140/165)
+2026-05-14 13:19:15,082 - INFO - [Hillsborough] Page 6: got 10 plans (150/165)
+2026-05-14 13:19:15,309 - INFO - [Hillsborough] Page 7: got 10 plans (160/165)
+2026-05-14 13:19:15,493 - INFO - [Hillsborough] Page 7: got 5 plans (165/165)
+2026-05-14 13:19:15,500 - INFO - [Hillsborough] Collected 165 of 165 plans
+2026-05-14 13:19:15,516 - INFO - Completed county: Hillsborough (12057)
+2026-05-14 13:19:15,740 - INFO - [Broward] Page 1: got 10 plans (10/180)
+2026-05-14 13:19:15,916 - INFO - [Broward] Page 1: got 10 plans (20/180)
+2026-05-14 13:19:16,081 - INFO - [Broward] Page 1: got 10 plans (30/180)
+2026-05-14 13:19:16,274 - INFO - [Broward] Page 2: got 10 plans (40/180)
+2026-05-14 13:19:16,450 - INFO - [Broward] Page 2: got 10 plans (50/180)
+2026-05-14 13:19:16,869 - INFO - [Broward] Page 3: got 10 plans (60/180)
+2026-05-14 13:19:17,119 - INFO - [Broward] Page 3: got 10 plans (70/180)
+2026-05-14 13:19:17,309 - INFO - [Broward] Page 3: got 10 plans (80/180)
+2026-05-14 13:19:17,610 - INFO - [Broward] Page 4: got 10 plans (90/180)
+2026-05-14 13:19:17,810 - INFO - [Broward] Page 4: got 10 plans (100/180)
+2026-05-14 13:19:18,026 - INFO - [Broward] Page 5: got 10 plans (110/180)
+2026-05-14 13:19:18,210 - INFO - [Broward] Page 5: got 10 plans (120/180)
+2026-05-14 13:19:18,425 - INFO - [Broward] Page 5: got 10 plans (130/180)
+2026-05-14 13:19:18,651 - INFO - [Broward] Page 6: got 10 plans (140/180)
+2026-05-14 13:19:18,850 - INFO - [Broward] Page 6: got 10 plans (150/180)
+2026-05-14 13:19:19,090 - INFO - [Broward] Page 7: got 10 plans (160/180)
+2026-05-14 13:19:19,283 - INFO - [Broward] Page 7: got 10 plans (170/180)
+2026-05-14 13:19:19,474 - INFO - [Broward] Page 7: got 10 plans (180/180)
+2026-05-14 13:19:19,479 - INFO - [Broward] Collected 180 of 180 plans
+2026-05-14 13:19:19,502 - INFO - Completed county: Broward (12011)
+2026-05-14 13:19:19,728 - INFO - [Orange] Page 1: got 10 plans (10/194)
+2026-05-14 13:19:19,899 - INFO - [Orange] Page 1: got 10 plans (20/194)
+2026-05-14 13:19:20,103 - INFO - [Orange] Page 1: got 10 plans (30/194)
+2026-05-14 13:19:20,287 - INFO - [Orange] Page 2: got 10 plans (40/194)
+2026-05-14 13:19:20,481 - INFO - [Orange] Page 2: got 10 plans (50/194)
+2026-05-14 13:19:20,652 - INFO - [Orange] Page 3: got 10 plans (60/194)
+2026-05-14 13:19:20,823 - INFO - [Orange] Page 3: got 10 plans (70/194)
+2026-05-14 13:19:21,000 - INFO - [Orange] Page 3: got 10 plans (80/194)
+2026-05-14 13:19:21,201 - INFO - [Orange] Page 4: got 10 plans (90/194)
+2026-05-14 13:19:21,459 - INFO - [Orange] Page 4: got 10 plans (100/194)
+2026-05-14 13:19:21,731 - INFO - [Orange] Page 5: got 10 plans (110/194)
+2026-05-14 13:19:21,947 - INFO - [Orange] Page 5: got 10 plans (120/194)
+2026-05-14 13:19:22,133 - INFO - [Orange] Page 5: got 10 plans (130/194)
+2026-05-14 13:19:22,390 - INFO - [Orange] Page 6: got 10 plans (140/194)
+2026-05-14 13:19:22,660 - INFO - [Orange] Page 6: got 10 plans (150/194)
+2026-05-14 13:19:22,953 - INFO - [Orange] Page 7: got 10 plans (160/194)
+2026-05-14 13:19:23,275 - INFO - [Orange] Page 7: got 10 plans (170/194)
+2026-05-14 13:19:23,467 - INFO - [Orange] Page 7: got 10 plans (180/194)
+2026-05-14 13:19:23,754 - INFO - [Orange] Page 8: got 10 plans (190/194)
+2026-05-14 13:19:23,936 - INFO - [Orange] Page 8: got 4 plans (194/194)
+2026-05-14 13:19:23,942 - INFO - [Orange] Collected 194 of 194 plans
+2026-05-14 13:19:23,952 - INFO - Completed county: Orange (12095)
+2026-05-14 13:19:24,364 - INFO - Loading data into DuckDB...
+2026-05-14 13:19:24,383 - INFO - Loading plans: shape=(698, 43)
+2026-05-14 13:19:24,927 - INFO - raw_data.plans: 698 rows
+2026-05-14 13:19:24,927 - INFO - Loading benefits: shape=(13822, 11)
+2026-05-14 13:19:24,952 - INFO - raw_data.benefits: 13822 rows
+2026-05-14 13:19:24,952 - INFO - Loading deductibles: shape=(880, 8)
+2026-05-14 13:19:24,959 - INFO - raw_data.deductibles: 880 rows
+2026-05-14 13:19:24,959 - INFO - Loading moops: shape=(698, 10)
+2026-05-14 13:19:24,966 - INFO - raw_data.moops: 698 rows
+2026-05-14 13:19:24,966 - INFO - Loading issuer: shape=(698, 10)
+2026-05-14 13:19:24,973 - INFO - raw_data.issuer: 698 rows
+2026-05-14 13:19:24,973 - INFO - Loading rating: shape=(698, 11)
+2026-05-14 13:19:24,981 - INFO - raw_data.rating: 698 rows
+2026-05-14 13:19:25,129 - INFO - Transforming data using dbt...
+2026-05-14 13:19:25,129 - INFO - Running dbt against C:\Users\bruce\Documents\GitHub\marketplace_pipeline\marketplace_pipeline
+2026-05-14 13:19:29,960 - INFO - dbt build completed successfully

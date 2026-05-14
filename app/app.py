@@ -13,7 +13,8 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import Input, Output, dash_table, dcc, html
+from dash import Input, Output, dash_table, dcc, html, Dash
+
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -505,6 +506,7 @@ app = dash.Dash(
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     title="FL MH Coverage Dashboard",
 )
+server = app.server 
 
 COUNTY_OPTIONS = [{"label": "All Counties", "value": "All Counties"}] + [
     {"label": v["name"], "value": v["name"]} for v in COUNTY_COORDS.values()
@@ -521,14 +523,14 @@ app.layout = dbc.Container(
             children=dbc.Row([
                 dbc.Col(
                     html.H5(
-                        "Florida Marketplace — Mental Health Coverage Analysis",
+                        "Florida Marketplace — ACA Mental Health Coverage Analysis",
                         style={"color": "#FFFFFF", "margin": 0, "fontWeight": 600},
                     ),
                     width=8,
                 ),
                 dbc.Col(
                     html.P(
-                        "ACA Individual Market · 2025 · Marion · Hillsborough · Broward · Orange",
+                        "Individual Markets: Marion · Hillsborough · Broward · Orange; Bruce A. Lee, 2026",
                         style={"color": C["light_purple"], "margin": 0, "fontSize": "12px", "textAlign": "right"},
                     ),
                     width=4,
@@ -565,7 +567,7 @@ app.layout = dbc.Container(
                             html.Hr(style={"margin": "14px 0"}),
                             html.P(
                                 "Source: CMS Marketplace API · dbt + DuckDB",
-                                style={"fontSize": "11px", "color": C["light_purple"], "margin": 0},
+                                style={"fontSize": "11px", "color": C["purple"], "margin": 0},
                             ),
                         ),
                         width=3,

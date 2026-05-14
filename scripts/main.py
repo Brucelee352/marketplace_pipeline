@@ -33,6 +33,7 @@ base_url = os.getenv("BASE_URL")
 key = os.getenv("API_KEY")
 log = logging.getLogger(__name__)
 dbt_root = root / "marketplace_pipeline"
+DB_PATH = Path(__file__).parent.parent / "marketplace.duckdb"
 
 COUNTIES = {
     "12083": {"name": "Marion",       "zip": "34470"},
@@ -346,7 +347,7 @@ if __name__ == "__main__":
 
     # Load into DuckDB
     log.info("Loading data into DuckDB...")
-    con = db.connect(f"{root}/marketplace.duckdb")
+    con = db.connect(str(DB_PATH), read_only=True)
     con.execute("CREATE SCHEMA IF NOT EXISTS raw_data")
     try:
         for table_name, df in combined.items():

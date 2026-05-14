@@ -18,4 +18,6 @@ dependencies = [
     "dash>=2.18.0",
     "dash-bootstrap-components>=1.6.0",
     "plotly>=5.24.0",
+    "gunicorn>=26.0.0",
+    "waitress>=3.0.2",
 ]
