@@ -14,6 +14,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from dash import Input, Output, dash_table, dcc, html, Dash
+from flask import send_from_directory
 
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -106,7 +107,7 @@ def _load():
     )
 
     # Individual in-network deductible already computed and COALESCE'd to $9,200 in the dbt model
-    ded = score[["county_fips", "plan_id", "in_network_deductible"]].rename(
+    ded = score[["county_fips", "plan_id", "in_network_deductible", "coverage_score"]].rename(
         columns={"in_network_deductible": "deductible"}
     )
 
@@ -481,6 +482,13 @@ app = dash.Dash(
 )
 server = app.server
 
+DOCS_DIR = Path(__file__).parent.parent / "dbt_docs"
+
+@server.route("/dbt-docs/")
+@server.route("/dbt-docs/<path:filename>")
+def dbt_docs(filename="index.html"):
+    return send_from_directory(DOCS_DIR, filename)
+
 COUNTY_OPTIONS = [{"label": "All Counties", "value": "All Counties"}] + [
     {"label": v["name"], "value": v["name"]} for v in COUNTY_COORDS.values()
 ]
@@ -550,21 +558,27 @@ app.layout = dbc.Container(
                             html.Div([
                                 html.A(
                                     "GitHub",
-                                    href="https://github.com/brucelee352",  # replace with your GitHub URL
+                                    href="https://github.com/brucelee352",  
                                     target="_blank",
                                     style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
                                 ),
                                 html.A(
                                     "LinkedIn",
-                                    href="https://linkedin.com/in/brucealee",  # replace with your LinkedIn URL
+                                    href="https://linkedin.com/in/brucealee",  
                                     target="_blank",
                                     style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
                                 ),
                             ]),
                             html.Div([
                                 html.A(
-                                    "Other Projects",               # replace with project name
-                                    href="https://projects.brucea-lee.com",  # replace with project URL
+                                    "Resume",
+                                    href="https://github.com/Brucelee352/marketplace_pipeline/blob/master/misc/BruceLee_2026Resume_b.pdf",
+                                    target="_blank",
+                                    style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
+                                ),
+                                html.A(
+                                    "dbt Docs ↗",
+                                    href="https://brucea-lee.com/dbt-docs/",
                                     target="_blank",
                                     style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
                                 ),
@@ -708,13 +722,14 @@ def _update(county, sessions):
         "spec_copay":    "Specialist Copay ($)",
         "pc_copay":      "Primary Care Copay ($)",
         "deductible":    "Deductible ($)",
-        "hsa_eligible":  "HSA Eligible",
-        "global_rating": "CMS Rating",
+        "hsa_eligible":   "HSA Eligible",
+        "global_rating":  "CMS Rating",
+        "coverage_score": "Coverage Score",
     }
     tbl = df[list(display_cols)].rename(columns=display_cols).round(2)
     tbl["Metal Tier"] = tbl["Metal Tier"].astype(str)
 
-    num_ids = {"Premium ($)", "MH Copay ($)", "Specialist Copay ($)", "Primary Care Copay ($)", "Deductible ($)", "CMS Rating"}
+    num_ids = {"Premium ($)", "MH Copay ($)", "Specialist Copay ($)", "Primary Care Copay ($)", "Deductible ($)", "CMS Rating", "Coverage Score"}
     columns = [
         {"name": c, "id": c, "type": "numeric" if c in num_ids else "text"}
         for c in tbl.columns

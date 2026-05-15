@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir uv && uv sync --frozen --no-dev
 
 COPY app/ ./app/
 COPY marketplace.duckdb ./
+COPY marketplace_pipeline/target/ ./dbt_docs/
 
 ENV PORT=8080
 
