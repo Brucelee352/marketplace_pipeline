@@ -9,7 +9,7 @@ from pathlib import Path
 
 import dash
 import dash_bootstrap_components as dbc
-import numpy as np
+import duckdb
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -18,13 +18,22 @@ from dash import Input, Output, dash_table, dcc, html, Dash
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-ROOT = Path(__file__).parents[1]
+ROOT    = Path(__file__).parents[1]
+DB_PATH = ROOT / "marketplace.duckdb"
 
 COUNTY_COORDS = {
     "12083": {"name": "Marion",       "lat": 29.21, "lon": -82.13},
     "12057": {"name": "Hillsborough", "lat": 27.86, "lon": -82.39},
     "12011": {"name": "Broward",      "lat": 26.19, "lon": -80.37},
+    "12086": {"name": "Miami-Dade",   "lat": 25.76, "lon": -80.19},
     "12095": {"name": "Orange",       "lat": 28.54, "lon": -81.22},
+    "12103": {"name": "Pinellas",     "lat": 27.88, "lon": -82.74},
+    "12031": {"name": "Duval",        "lat": 30.34, "lon": -81.66},
+    "12115": {"name": "Sarasota",     "lat": 27.18, "lon": -82.36},
+    "12099": {"name": "Palm Beach",   "lat": 26.65, "lon": -80.44},
+    "12069": {"name": "Lake",         "lat": 28.76, "lon": -81.71},
+    "12001": {"name": "Alachua",      "lat": 29.67, "lon": -82.35},
+    "12105": {"name": "Polk",         "lat": 27.95, "lon": -81.70},
 }
 
 METAL_ORDER  = ["Catastrophic", "Bronze", "Silver", "Gold", "Platinum"]
@@ -57,46 +66,25 @@ C = {
 # ── Data preparation ──────────────────────────────────────────────────────────
 
 def _load():
-    benefits = pd.read_csv(ROOT / "data/benefits.csv")
-    plans    = pd.read_csv(ROOT / "data/plans.csv")
-    issuer   = pd.read_csv(ROOT / "data/issuer.csv")
-    rating   = pd.read_csv(ROOT / "data/rating.csv")
-    deds     = pd.read_csv(ROOT / "data/deductibles.csv")
+    con = duckdb.connect(str(DB_PATH), read_only=True)
+    try:
+        dim_plan = con.execute("SELECT * FROM main.dim_plan").df()
+        benefits = con.execute("SELECT * FROM main.fct_plan_benefits").df()
+        score    = con.execute("SELECT * FROM main.fct_plan_mh_coverage_score").df()
+    finally:
+        con.close()
 
-    plan_base = plans[[
-        "county_fips", "county_name", "id", "name", "metal_level", "type", "premium",
-        "hsa_eligible", "specialist_referral_required",
-    ]].rename(columns={"id": "plan_id", "name": "plan_name", "type": "plan_type"})
-    plan_base["hsa_eligible"] = plan_base["hsa_eligible"].astype(bool)
-    plan_base["specialist_referral_required"] = plan_base["specialist_referral_required"].astype(bool)
-
-    carrier = (
-        issuer.groupby(["county_fips", "plan_id"])["name"]
-        .first().reset_index().rename(columns={"name": "carrier"})
-    )
-    carrier["carrier_short"] = (
-        carrier["carrier"]
+    # Carrier display name: strip legal suffixes and parenthetical notes
+    carrier_name = dim_plan["carrier_name"].fillna(dim_plan["plan_id"].str[:5])
+    dim_plan["carrier"]       = carrier_name
+    dim_plan["carrier_short"] = (
+        carrier_name
         .str.replace(r"\s*\(.*?\)", "", regex=True)
         .str.replace(r",?\s*(Inc\.?|LLC\.?|Company of Florida)", "", regex=True)
         .str.strip()
     )
 
-    rating_agg = (
-        rating.groupby("plan_id")["global_rating"]
-        .max().reset_index()
-    )
-    rating_agg["global_rating"] = rating_agg["global_rating"].replace(0, np.nan)
-
-    ded_in = (
-        deds[
-            (deds["type"] == "Combined Medical and Drug EHB Deductible")
-            & (deds["network_tier"] == "In-Network")
-            & (deds["family_cost"] == "Individual")
-        ]
-        .groupby(["county_fips", "plan_id"])["amount"].min()
-        .reset_index().rename(columns={"amount": "deductible"})
-    )
-
+    # Per-plan minimum in-network copays from fct_plan_benefits
     def _best_in_net(btype, col_rename):
         return (
             benefits[
@@ -112,23 +100,34 @@ def _load():
         "MENTAL_BEHAVIORAL_HEALTH_OUTPATIENT_SERVICES",
         {"mh_copay": "copay", "mh_coinsurance": "coinsurance_rate"},
     )
-    spec_in = _best_in_net("SPECIALIST_VISIT",                                    {"spec_copay": "copay"})
-    pc_in   = _best_in_net("PRIMARY_CARE_VISIT_TO_TREAT_AN_INJURY_OR_ILLNESS",    {"pc_copay": "copay"})
+    spec_in = _best_in_net("SPECIALIST_VISIT", {"spec_copay": "copay"})
+    pc_in   = _best_in_net(
+        "PRIMARY_CARE_VISIT_TO_TREAT_AN_INJURY_OR_ILLNESS", {"pc_copay": "copay"}
+    )
+
+    # Individual in-network deductible already computed and COALESCE'd to $9,200 in the dbt model
+    ded = score[["county_fips", "plan_id", "in_network_deductible"]].rename(
+        columns={"in_network_deductible": "deductible"}
+    )
 
     master = (
-        plan_base
-        .merge(carrier[["county_fips", "plan_id", "carrier", "carrier_short"]], on=["county_fips", "plan_id"], how="left")
-        .merge(rating_agg, on="plan_id", how="left")
+        dim_plan[[
+            "county_fips", "county_name", "plan_id", "plan_name",
+            "metal_level", "plan_type", "premium",
+            "hsa_eligible", "specialist_referral_required",
+            "carrier", "carrier_short", "global_rating",
+        ]]
         .merge(mh_in,   on=["county_fips", "plan_id"], how="left")
         .merge(spec_in, on=["county_fips", "plan_id"], how="left")
         .merge(pc_in,   on=["county_fips", "plan_id"], how="left")
-        .merge(ded_in,  on=["county_fips", "plan_id"], how="left")
+        .merge(ded,     on=["county_fips", "plan_id"], how="left")
     )
-    master["deductible"]      = master["deductible"].fillna(9200)
-    master["mh_coinsurance"]  = master["mh_coinsurance"].fillna(0)
-    # Per-visit MH cost: copay-only plans → mh_copay; coinsurance-only → rate × session cost
+    master["deductible"]        = master["deductible"].fillna(9200)
+    master["mh_coinsurance"]    = master["mh_coinsurance"].fillna(0)
     master["effective_mh_cost"] = master["mh_copay"] + master["mh_coinsurance"] * SESSION_COST
-    master["metal_level"] = pd.Categorical(master["metal_level"], categories=METAL_ORDER, ordered=True)
+    master["metal_level"] = pd.Categorical(
+        master["metal_level"], categories=METAL_ORDER, ordered=True
+    )
 
     return benefits, master
 
@@ -215,7 +214,7 @@ def fig_map(county: str) -> go.Figure:
     fig.update_layout(
         paper_bgcolor=C["card"],
         margin=dict(l=0, r=0, t=0, b=0),
-        height=280,
+        height=440,
         coloraxis_colorbar=dict(
             title="Avg MH<br>Copay ($)", thickness=10, len=0.55, tickfont_size=10,
         ),
@@ -224,12 +223,12 @@ def fig_map(county: str) -> go.Figure:
 
 
 def fig_q1_access(county: str) -> go.Figure:
-    """Q1 — What share of plans offer affordable MH outpatient coverage by metal tier?"""
+    """Q1 -- What share of plans offer affordable MH outpatient coverage by metal tier?"""
     df = _filter(PLANS, county).dropna(subset=["mh_copay"])
     df["copay_tier"] = pd.cut(
         df["mh_copay"],
         bins=[-1, 0, 25, 50, 999],
-        labels=["$0 (No Cost-Share)", "$1–$25", "$26–$50", "$51+"],
+        labels=["$0 (No Cost-Share)", "$1-$25", "$26-$50", "$51+"],
     )
     grouped = (
         df.groupby(["metal_level", "copay_tier"], observed=True)
@@ -239,103 +238,73 @@ def fig_q1_access(county: str) -> go.Figure:
         grouped, x="metal_level", y="plans", color="copay_tier",
         barmode="stack",
         color_discrete_sequence=["#2563EB", "#7C3AED", "#C4B5FD", "#DBEAFE"],
-        labels={"metal_level": "Metal Tier", "plans": "Plans", "copay_tier": "MH Copay Tier"},
+        labels={"metal_level": "Metal Tier", "plans": "N", "copay_tier": "MH Copay Tier"},
         category_orders={"metal_level": METAL_ORDER},
     )
-    _theme(fig, "Outpatient Access: Plans by Copay Tier & Metal Level for Mental Health")
-    fig.update_layout(legend_title_text="In-Network Copay", height=340)
+    _theme(fig, "Outpatient Access: Plans by Copay Tier & Metal Level")
+    fig.update_layout(legend_title_text="In-Network Copay", height=420)
     return fig
 
 
 def fig_q2_plan_types(county: str) -> go.Figure:
-    """
-    Q2 — Plan type availability by county with MH coverage context.
-
-    All Counties: grouped bars comparing plan type counts across counties.
-    Single county: stacked bars breaking each plan type down by metal tier.
-    Hover includes avg premium, HSA eligibility, and specialist referral requirement.
-    """
+    """Q2 -- Plan type availability. Faceted 2x2 grid (All Counties) or single panel."""
     df = _filter(PLANS, county).copy()
     df["metal_level"] = pd.Categorical(df["metal_level"], categories=METAL_ORDER, ordered=True)
 
-    if county and county != "All Counties":
-        # Single county — show metal tier composition within each plan type
-        agg = (
-            df.groupby(["plan_type", "metal_level"], observed=True)
-            .agg(
-                plan_count=("plan_id", "nunique"),
-                avg_premium=("premium", "mean"),
-                hsa_count=("hsa_eligible", "sum"),
-            )
-            .reset_index()
+    agg = (
+        df.groupby(["county_name", "plan_type", "metal_level"], observed=True)
+        .agg(
+            plan_count=("plan_id", "nunique"),
+            avg_premium=("premium", "mean"),
+            hsa_count=("hsa_eligible", "sum"),
         )
-        fig = px.bar(
-            agg,
-            x="plan_type", y="plan_count",
-            color="metal_level",
-            barmode="stack",
-            color_discrete_map=METAL_COLORS,
-            custom_data=["avg_premium", "hsa_count", "metal_level"],
-            labels={"plan_type": "Plan Type", "plan_count": "Plans", "metal_level": "Metal Tier"},
-            category_orders={"metal_level": METAL_ORDER},
-            text_auto=True,
-        )
-        fig.update_traces(
-            textfont_size=10,
-            hovertemplate=(
-                "<b>%{x} — %{customdata[2]}</b><br>"
-                "Plans: %{y}<br>"
-                "Avg Premium: $%{customdata[0]:.0f}/mo<br>"
-                "HSA-Eligible: %{customdata[1]:.0f}<br>"
-                "Specialist Referral Required: No<br>"
-                "<extra></extra>"
-            ),
-        )
-    else:
-        # All counties — compare plan type counts across counties
-        agg = (
-            df.groupby(["county_name", "plan_type"])
-            .agg(
-                plan_count=("plan_id", "nunique"),
-                avg_premium=("premium", "mean"),
-                hsa_count=("hsa_eligible", "sum"),
-            )
-            .reset_index()
-        )
-        fig = px.bar(
-            agg,
-            x="plan_type", y="plan_count",
-            color="county_name",
-            barmode="group",
-            color_discrete_sequence=[C["blue"], C["purple"], "#06B6D4", "#10B981"],
-            custom_data=["avg_premium", "hsa_count", "county_name"],
-            labels={"plan_type": "Plan Type", "plan_count": "Plans", "county_name": "County"},
-            text="plan_count",
-        )
-        fig.update_traces(
-            textposition="outside",
-            cliponaxis=False,
-            textfont_size=10,
-            hovertemplate=(
-                "<b>%{customdata[2]} — %{x}</b><br>"
-                "Plans: %{y}<br>"
-                "Avg Premium: $%{customdata[0]:.0f}/mo<br>"
-                "HSA-Eligible: %{customdata[1]:.0f}<br>"
-                "Specialist Referral Required: No<br>"
-                "<extra></extra>"
-            ),
-        )
+        .reset_index()
+    )
 
+    all_counties = not county or county == "All Counties"
+    facet_kwargs = {"facet_col": "county_name", "facet_col_wrap": 2} if all_counties else {}
+
+    fig = px.bar(
+        agg,
+        y="plan_type", x="plan_count",
+        color="metal_level",
+        barmode="stack",
+        orientation="h",
+        color_discrete_map=METAL_COLORS,
+        category_orders={
+            "metal_level": METAL_ORDER,
+            "county_name": sorted(agg["county_name"].unique()),
+        },
+        custom_data=["avg_premium", "hsa_count", "metal_level", "county_name"],
+        labels={"plan_type": "Plan Type", "plan_count": "Plans", "metal_level": "Metal Tier"},
+        text_auto=True,
+        **facet_kwargs,
+    )
+    fig.update_traces(
+        textfont_size=10,
+        hovertemplate=(
+            "<b>%{y} — %{customdata[2]}</b><br>"
+            "County: %{customdata[3]}<br>"
+            "Plans: %{x}<br>"
+            "Avg Premium: $%{customdata[0]:.0f}/mo<br>"
+            "HSA-Eligible: %{customdata[1]:.0f}<br>"
+            "<extra></extra>"
+        ),
+    )
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     _theme(fig, "Plan Type Availability by County")
     fig.update_layout(
-        height=380,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        height=560 if all_counties else 420,
+        xaxis_title="Plans",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+
     )
+    fig.update_yaxes(title_text="", showticklabels=True)
     return fig
 
 
 def fig_q3_parity(county: str) -> go.Figure:
-    """Q3 — Parity: copay distribution for therapy vs. comparable medical visits."""
+    """Q3 -- Parity: copay distribution for therapy vs. comparable medical visits."""
     type_map = {
         "MENTAL_BEHAVIORAL_HEALTH_OUTPATIENT_SERVICES":     "MH Outpatient",
         "SPECIALIST_VISIT":                                  "Specialist Visit",
@@ -347,10 +316,14 @@ def fig_q3_parity(county: str) -> go.Figure:
     ].copy()
     df = _filter(df, county)
     df["visit_type"] = df["benefit_type"].map(type_map)
-    df = df.merge(
-        PLANS[["county_fips", "plan_id", "metal_level"]],
-        on=["county_fips", "plan_id"], how="left",
-    )
+
+    if "metal_level" not in df.columns:
+        df = df.merge(
+            PLANS[["county_fips", "plan_id", "metal_level"]],
+            on=["county_fips", "plan_id"],
+            how="left",
+        )
+
     df["metal_level"] = pd.Categorical(df["metal_level"], categories=METAL_ORDER, ordered=True)
 
     fig = px.violin(
@@ -366,12 +339,12 @@ def fig_q3_parity(county: str) -> go.Figure:
         labels={"visit_type": "", "copay": "In-Network Copay ($)", "metal_level": "Metal Tier"},
     )
     _theme(fig, "Therapy vs. Medical Visit Copay Distribution")
-    fig.update_layout(height=380, violingap=0.2, violinmode="group")
+    fig.update_layout(height=420, violingap=0.2, violinmode="group")
     return fig
 
 
 def fig_q4_carrier(county: str) -> go.Figure:
-    """Q4 — Which carriers offer the best MH value relative to their premium tier?"""
+    """Q4 -- Which carriers offer the best MH value relative to their premium tier?"""
     df = _filter(PLANS, county).dropna(subset=["carrier_short", "mh_copay"])
     agg = (
         df.groupby("carrier_short").agg(
@@ -395,9 +368,9 @@ def fig_q4_carrier(county: str) -> go.Figure:
         size_max=48,
         hover_name="carrier_short",
         hover_data={
-            "plan_count":  True,
-            "avg_premium": ":.0f",
-            "avg_mh_copay":":.0f",
+            "plan_count":   True,
+            "avg_premium":  ":.0f",
+            "avg_mh_copay": ":.0f",
             "carrier_short": False,
         },
     )
@@ -414,11 +387,11 @@ def fig_q4_carrier(county: str) -> go.Figure:
 
 def fig_q5_pareto(county: str, annual_visits: int = 12) -> go.Figure:
     """
-    Optimization — Plan Efficiency Frontier.
+    Optimization -- Plan Efficiency Frontier.
 
     Multi-objective: minimise monthly premium AND expected annual MH out-of-pocket.
-    Expected annual MH OOP = effective_mh_cost × annual_visits.
-    Plans on the Pareto frontier are optimal — no other plan beats them on both axes.
+    Expected annual MH OOP = effective_mh_cost x annual_visits.
+    Plans on the Pareto frontier are optimal -- no other plan beats them on both axes.
     """
     df = _filter(PLANS, county).dropna(subset=["effective_mh_cost", "premium", "carrier_short"])
     df["annual_mh_oop"] = (df["effective_mh_cost"] * annual_visits).round(0)
@@ -442,7 +415,7 @@ def fig_q5_pareto(county: str, annual_visits: int = 12) -> go.Figure:
         opacity=0.55,
         labels={
             "premium":       "Monthly Premium ($)",
-            "annual_mh_oop": f"Expected Annual MH OOP — {annual_visits} visits ($)",
+            "annual_mh_oop": f"Expected Annual MH OOP, {annual_visits} visits ($)",
             "metal_level":   "Metal Tier",
         },
         category_orders={"metal_level": METAL_ORDER},
@@ -488,12 +461,12 @@ def _card(*children, **extra_style):
     return html.Div(
         list(children),
         style={
-            "background":    C["card"],
-            "borderRadius":  "12px",
-            "padding":       "16px",
-            "boxShadow":     "0 1px 4px rgba(0,0,0,0.08)",
-            "border":        f"1px solid {C['border']}",
-            "marginBottom":  "20px",
+            "background":   C["card"],
+            "borderRadius": "12px",
+            "padding":      "16px",
+            "boxShadow":    "0 1px 4px rgba(0,0,0,0.08)",
+            "border":       f"1px solid {C['border']}",
+            "marginBottom": "20px",
             **extra_style,
         },
     )
@@ -506,7 +479,7 @@ app = dash.Dash(
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     title="FL MH Coverage Dashboard",
 )
-server = app.server 
+server = app.server
 
 COUNTY_OPTIONS = [{"label": "All Counties", "value": "All Counties"}] + [
     {"label": v["name"], "value": v["name"]} for v in COUNTY_COORDS.values()
@@ -523,14 +496,14 @@ app.layout = dbc.Container(
             children=dbc.Row([
                 dbc.Col(
                     html.H5(
-                        "Florida Marketplace — ACA Mental Health Coverage Analysis",
+                        "FL Marketplace: ACA Mental Health Coverage Analysis",
                         style={"color": "#FFFFFF", "margin": 0, "fontWeight": 600},
                     ),
                     width=8,
                 ),
                 dbc.Col(
                     html.P(
-                        "Individual Markets: Marion · Hillsborough · Broward · Orange; Bruce A. Lee, 2026",
+                        "Bruce A. Lee, 2026",
                         style={"color": C["light_purple"], "margin": 0, "fontSize": "12px", "textAlign": "right"},
                     ),
                     width=4,
@@ -569,6 +542,33 @@ app.layout = dbc.Container(
                                 "Source: CMS Marketplace API · dbt + DuckDB",
                                 style={"fontSize": "11px", "color": C["purple"], "margin": 0},
                             ),
+                            html.Hr(style={"margin": "14px 0"}),
+                            html.P(
+                                "Connect",
+                                style={"fontWeight": 600, "fontSize": "12px", "color": C["navy"], "marginBottom": "8px"},
+                            ),
+                            html.Div([
+                                html.A(
+                                    "GitHub",
+                                    href="https://github.com/brucelee352",  # replace with your GitHub URL
+                                    target="_blank",
+                                    style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
+                                ),
+                                html.A(
+                                    "LinkedIn",
+                                    href="https://linkedin.com/in/brucealee",  # replace with your LinkedIn URL
+                                    target="_blank",
+                                    style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
+                                ),
+                            ]),
+                            html.Div([
+                                html.A(
+                                    "Other Projects",               # replace with project name
+                                    href="https://projects.brucea-lee.com",  # replace with project URL
+                                    target="_blank",
+                                    style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
+                                ),
+                            ]),
                         ),
                         width=3,
                     ),
@@ -578,23 +578,23 @@ app.layout = dbc.Container(
                     ),
                 ]),
 
-                # Q1 + Q2
+                # Q1 + Q3
                 dbc.Row([
                     dbc.Col(_card(dcc.Graph(id="q1-fig", config={"displayModeBar": False})), width=6),
-                    dbc.Col(_card(dcc.Graph(id="q2-fig", config={"displayModeBar": False})), width=6),
+                    dbc.Col(_card(dcc.Graph(id="q3-fig", config={"displayModeBar": False})), width=6),
                 ]),
 
-                # Q3 — full width
+                # Q2 -- full width
                 dbc.Row([
-                    dbc.Col(_card(dcc.Graph(id="q3-fig", config={"displayModeBar": False})), width=12),
+                    dbc.Col(_card(dcc.Graph(id="q2-fig", config={"displayModeBar": False})), width=12),
                 ]),
 
-                # Q4 — full width
+                # Q4 -- full width
                 dbc.Row([
                     dbc.Col(_card(dcc.Graph(id="q4-fig", config={"displayModeBar": False})), width=12),
                 ]),
 
-                # Q5 — Optimization + sessions slider
+                # Q5 -- Optimization + sessions slider
                 dbc.Row([
                     dbc.Col(
                         _card(
@@ -683,16 +683,16 @@ def _map_click(click_data):
 
 
 @app.callback(
-    Output("map-fig",    "figure"),
-    Output("q1-fig",     "figure"),
-    Output("q2-fig",     "figure"),
-    Output("q3-fig",     "figure"),
-    Output("q4-fig",     "figure"),
-    Output("q5-fig",      "figure"),
-    Output("data-table",  "data"),
-    Output("data-table",  "columns"),
-    Input("county-dd",       "value"),
-    Input("sessions-slider", "value"),
+    Output("map-fig",   "figure"),
+    Output("q1-fig",    "figure"),
+    Output("q2-fig",    "figure"),
+    Output("q3-fig",    "figure"),
+    Output("q4-fig",    "figure"),
+    Output("q5-fig",    "figure"),
+    Output("data-table", "data"),
+    Output("data-table", "columns"),
+    Input("county-dd",        "value"),
+    Input("sessions-slider",  "value"),
 )
 def _update(county, sessions):
     df = _filter(PLANS, county)
@@ -708,6 +708,7 @@ def _update(county, sessions):
         "spec_copay":    "Specialist Copay ($)",
         "pc_copay":      "Primary Care Copay ($)",
         "deductible":    "Deductible ($)",
+        "hsa_eligible":  "HSA Eligible",
         "global_rating": "CMS Rating",
     }
     tbl = df[list(display_cols)].rename(columns=display_cols).round(2)

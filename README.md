@@ -1,6 +1,8 @@
 # Marketplace Pipeline
 
-An end-to-end data pipeline that evaluates mental health service coverage across individual health insurance plans listed on the US Public Health Insurance Marketplace for four Florida counties: Marion, Hillsborough, Broward, and Orange.
+An end-to-end data pipeline that evaluates mental health service coverage across individual health insurance plans listed on the US Public Health Insurance Marketplace for several Florida counties. 
+
+The reason being that I wanted to answer the question, "what is the best possible coverage that I could get that offers mental health services within popular Florida metros? The counties themselves that I had chosen are places that I've either lived in or liked visiting before in FL. (Don't ask me why Miami-Dade is there though haha)
 
 The pipeline extracts plan data from the CMS Marketplace API, loads it into DuckDB, transforms it with dbt, and produces a scored fact table ranking each plan by the quality of its mental health benefit coverage. An interactive Dash app serves the results for exploration and comparison.
 
@@ -36,7 +38,7 @@ dbt (marketplace_pipeline/)
         +-- main.fct_*            (fact tables)
         |
         v
-scripts/app.py           <- Dash app, reads from data/*.csv
+app/app.py               <- Dash app, reads from main.dim_*, main.fct_*
 ```
 
 ---
@@ -60,6 +62,7 @@ scripts/app.py           <- Dash app, reads from data/*.csv
 marketplace_pipeline/          <- repo root
 +-- scripts/
 |   +-- main.py                <- ETL entry point
++-- app/
 |   +-- app.py                 <- Dash visualization app
 +-- data/
 |   +-- *.csv                  <- latest snapshot (overwritten each run)
@@ -91,6 +94,15 @@ marketplace_pipeline/          <- repo root
 | 12057       | Hillsborough | 33602    |
 | 12011       | Broward      | 33301    |
 | 12095       | Orange       | 32801    |
+| 12103       | Pinellas     | 33701    |
+| 12031       | Duval        | 32202    |
+| 12081       | Manatee      | 34205    |
+| 12115       | Sarasota     | 34236    |
+| 12099       | Palm Beach   | 33401    |
+| 12069       | Lake         | 34748    |
+| 12001       | Alachua      | 32601    |
+| 12105       | Polk         | 33801    |
+
 
 ---
 
@@ -139,7 +151,7 @@ uv run python scripts/main.py
 
 This does three things in sequence:
 
-1. **Extract** -- pages through the Marketplace API (`POST /plans/search`) collecting plans, benefits, deductibles, MOOPs, issuer info, and CMS quality ratings for all four counties.
+1. **Extract** -- pages through the Marketplace API (`POST /plans/search`) collecting plans, benefits, deductibles, MOOPs, issuer info, and CMS quality ratings for all counties.
 2. **Load** -- writes each dataset as a table in the `raw_data` schema of `marketplace.duckdb`. Also saves timestamped CSVs to `data/snapshots/` for auditing.
 3. **Transform** -- runs `dbt clean -> dbt deps -> dbt snapshot -> dbt run` inside `marketplace_pipeline/`, building the full staging -> marts -> facts model DAG.
 
@@ -155,10 +167,10 @@ dbt test --target dev
 ### Launch the Dash app
 
 ```bash
-uv run python scripts/app.py
+uv run python app/app.py
 ```
 
-Opens at `http://localhost:8050`. Reads directly from `data/*.csv`, no running DuckDB connection required.
+Opens at `http://localhost:8050`. Reads directly from `marketplace.duckdb` via the dbt-built models (`main.dim_plan`, `main.fct_plan_benefits`, `main.fct_plan_mh_coverage_score`).
 
 ---
 

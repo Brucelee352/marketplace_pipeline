@@ -40,6 +40,14 @@ COUNTIES = {
     "12057": {"name": "Hillsborough", "zip": "33602"},
     "12011": {"name": "Broward",      "zip": "33301"},
     "12095": {"name": "Orange",       "zip": "32801"},
+    "12103": {"name": "Pinellas",     "zip": "33701"},
+    "12031": {"name": "Duval",        "zip": "32202"},
+    "12115": {"name": "Sarasota",     "zip": "34236"},
+    "12099": {"name": "Palm Beach",   "zip": "33401"},
+    "12069": {"name": "Lake",         "zip": "34748"},
+    "12001": {"name": "Alachua",      "zip": "32601"},
+    "12105": {"name": "Polk",         "zip": "33801"},
+    "12086": {"name": "Miami-Dade",   "zip": "33128"},
 }
 
 # Configure API session
@@ -347,7 +355,7 @@ if __name__ == "__main__":
 
     # Load into DuckDB
     log.info("Loading data into DuckDB...")
-    con = db.connect(str(DB_PATH), read_only=True)
+    con = db.connect(str(DB_PATH))
     con.execute("CREATE SCHEMA IF NOT EXISTS raw_data")
     try:
         for table_name, df in combined.items():

@@ -1,0 +1,11 @@
+.venv/
+.git/
+.dbt/
+logs/
+data/snapshots/
+__pycache__/
+*.pyc
+.env
+.vscode/
+.idea/
+notebooks/
