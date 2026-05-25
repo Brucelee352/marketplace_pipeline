@@ -189,9 +189,7 @@ All tables live in the `raw_data` schema of `marketplace.duckdb`. Every table in
 
 ---
 
-## Data Quality Notes
-
-Two extraction bugs were identified and fixed in `scripts/main.py`:
+## Prior Bugs
 
 - `ratings` and `issuer` rows were previously accumulated inside the `for moop` loop, producing one row per MOOP per plan instead of one per plan. Fixed -- both are now appended once per plan.
 - The benefit/deductible/MOOP accumulation block was previously inside the `while True` pagination loop, causing all prior pages' plans to be reprocessed on each new page. Fixed -- accumulation now runs after the loop exits.
