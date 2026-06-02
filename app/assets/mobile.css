@@ -1,0 +1,16 @@
+@media (max-width: 767px) {
+    /* Taller charts so legends and axis labels have room to breathe */
+    .dash-graph {
+        height: 520px !important;
+    }
+
+    /* Tighten page padding on small screens */
+    .container-fluid {
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+    }
+
+    body > div > div > div[style] {
+        padding: 8px 4px !important;
+    }
+}

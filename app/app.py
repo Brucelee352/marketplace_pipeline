@@ -153,8 +153,11 @@ def _theme(fig: go.Figure, title: str = "") -> go.Figure:
             text=title, x=0.01, xanchor="left",
             font=dict(size=13, color=C["navy"]),
         ) if title else {},
-        margin=dict(l=16, r=16, t=52 if title else 16, b=16),
-        legend=dict(bgcolor="rgba(0,0,0,0)", borderwidth=0, font_size=11),
+        margin=dict(l=16, r=16, t=52 if title else 16, b=72),
+        legend=dict(
+            bgcolor="rgba(0,0,0,0)", borderwidth=0, font_size=11,
+            orientation="h", yanchor="top", y=-0.12, xanchor="center", x=0.5,
+        ),
     )
     fig.update_xaxes(gridcolor=C["axis"], linecolor=C["axis"], zeroline=False)
     fig.update_yaxes(gridcolor=C["axis"], linecolor=C["axis"], zeroline=False)
@@ -239,7 +242,7 @@ def fig_q1_access(county: str) -> go.Figure:
         grouped, x="metal_level", y="plans", color="copay_tier",
         barmode="stack",
         color_discrete_sequence=["#2563EB", "#7C3AED", "#C4B5FD", "#DBEAFE"],
-        labels={"metal_level": "Metal Tier", "plans": "N", "copay_tier": "MH Copay Tier"},
+        labels={"metal_level": "", "plans": "N", "copay_tier": "MH Copay Tier"},
         category_orders={"metal_level": METAL_ORDER},
     )
     _theme(fig, "Outpatient Access: Plans by Copay Tier & Metal Level")
@@ -248,67 +251,74 @@ def fig_q1_access(county: str) -> go.Figure:
 
 
 def fig_q2_plan_types(county: str) -> go.Figure:
-    """Q2 -- Plan type availability. Faceted 2x2 grid (All Counties) or single panel."""
+    """Q2 -- Plan type availability heatmap. Counties x plan types, or metal tiers x plan types."""
     df = _filter(PLANS, county).copy()
-    df["metal_level"] = pd.Categorical(df["metal_level"], categories=METAL_ORDER, ordered=True)
-
-    agg = (
-        df.groupby(["county_name", "plan_type", "metal_level"], observed=True)
-        .agg(
-            plan_count=("plan_id", "nunique"),
-            avg_premium=("premium", "mean"),
-            hsa_count=("hsa_eligible", "sum"),
-        )
-        .reset_index()
-    )
-
     all_counties = not county or county == "All Counties"
-    facet_kwargs = {"facet_col": "county_name", "facet_col_wrap": 2} if all_counties else {}
 
-    fig = px.bar(
-        agg,
-        y="plan_type", x="plan_count",
-        color="metal_level",
-        barmode="stack",
-        orientation="h",
-        color_discrete_map=METAL_COLORS,
-        category_orders={
-            "metal_level": METAL_ORDER,
-            "county_name": sorted(agg["county_name"].unique()),
-        },
-        custom_data=["avg_premium", "hsa_count", "metal_level", "county_name"],
-        labels={"plan_type": "Plan Type", "plan_count": "Plans", "metal_level": "Metal Tier"},
-        text_auto=True,
-        **facet_kwargs,
-    )
-    fig.update_traces(
-        textfont_size=10,
-        hovertemplate=(
-            "<b>%{y} — %{customdata[2]}</b><br>"
-            "County: %{customdata[3]}<br>"
-            "Plans: %{x}<br>"
-            "Avg Premium: $%{customdata[0]:.0f}/mo<br>"
-            "HSA-Eligible: %{customdata[1]:.0f}<br>"
-            "<extra></extra>"
-        ),
-    )
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    if all_counties:
+        agg = (
+            df.groupby(["county_name", "plan_type"])
+            .agg(plan_count=("plan_id", "nunique"), avg_premium=("premium", "mean"))
+            .reset_index()
+        )
+        pivot_z    = agg.pivot(index="county_name", columns="plan_type", values="plan_count").fillna(0)
+        pivot_prem = agg.pivot(index="county_name", columns="plan_type", values="avg_premium")
+        y_title = "County"
+    else:
+        df["metal_level"] = pd.Categorical(df["metal_level"], categories=METAL_ORDER, ordered=True)
+        agg = (
+            df.groupby(["metal_level", "plan_type"], observed=True)
+            .agg(plan_count=("plan_id", "nunique"), avg_premium=("premium", "mean"))
+            .reset_index()
+            .sort_values("metal_level")
+        )
+        pivot_z    = agg.pivot(index="metal_level", columns="plan_type", values="plan_count").fillna(0)
+        pivot_prem = agg.pivot(index="metal_level", columns="plan_type", values="avg_premium")
+        y_title = "Metal Tier"
+
+    z_vals    = pivot_z.values
+    prem_vals = pivot_prem.values
+    rows_idx  = pivot_z.index.tolist()
+    cols_idx  = pivot_z.columns.tolist()
+    hover = [
+        [
+            (
+                f"<b>{cols_idx[j]} — {rows_idx[i]}</b><br>"
+                f"Plans: {int(z_vals[i, j])}<br>"
+                + (f"Avg Premium: ${prem_vals[i, j]:.0f}/mo" if pd.notna(prem_vals[i, j]) else "")
+            )
+            for j in range(len(cols_idx))
+        ]
+        for i in range(len(rows_idx))
+    ]
+
+    fig = go.Figure(go.Heatmap(
+        z=pivot_z.values,
+        x=pivot_z.columns.tolist(),
+        y=pivot_z.index.tolist(),
+        text=[[str(int(v)) if v > 0 else "" for v in row] for row in pivot_z.values],
+        texttemplate="%{text}",
+        textfont=dict(size=13, color="white"),
+        hovertext=hover,
+        hovertemplate="%{hovertext}<extra></extra>",
+        colorscale=[[0, C["bg"]], [0.4, C["blue"]], [1, C["purple"]]],
+        colorbar=dict(title="Plans", thickness=12, len=0.75, tickfont_size=10),
+    ))
+
     _theme(fig, "Plan Type Availability by County")
     fig.update_layout(
-        height=560 if all_counties else 420,
-        xaxis_title="Plans",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-
+        height=340 if all_counties else 300,
+        xaxis_title="Plan Type",
+        yaxis_title=y_title,
     )
-    fig.update_yaxes(title_text="", showticklabels=True)
     return fig
 
 
 def fig_q3_parity(county: str) -> go.Figure:
     """Q3 -- Parity: copay distribution for therapy vs. comparable medical visits."""
     type_map = {
-        "MENTAL_BEHAVIORAL_HEALTH_OUTPATIENT_SERVICES":     "MH Outpatient",
-        "SPECIALIST_VISIT":                                  "Specialist Visit",
+        "MENTAL_BEHAVIORAL_HEALTH_OUTPATIENT_SERVICES":     "Therapy",
+        "SPECIALIST_VISIT":                                  "Specialist",
         "PRIMARY_CARE_VISIT_TO_TREAT_AN_INJURY_OR_ILLNESS": "Primary Care",
     }
     df = BENEFITS[
@@ -341,6 +351,7 @@ def fig_q3_parity(county: str) -> go.Figure:
     )
     _theme(fig, "Therapy vs. Medical Visit Copay Distribution")
     fig.update_layout(height=420, violingap=0.2, violinmode="group")
+    fig.update_xaxes(tickangle=0, tickfont_size=11)
     return fig
 
 
@@ -441,10 +452,7 @@ def fig_q5_pareto(county: str, annual_visits: int = 12) -> go.Figure:
 
     fig.add_annotation(
         xref="paper", yref="paper", x=0.01, y=0.98,
-        text=(
-            "Plans on the dashed frontier are Pareto-optimal:<br>"
-            "no other plan is cheaper on both premium and therapy cost."
-        ),
+        text="Frontier: no other plan beats<br>these on both cost dimensions.",
         showarrow=False, align="left",
         font=dict(size=10, color=C["subtext"]),
         bgcolor="rgba(255,255,255,0.85)",
@@ -452,7 +460,12 @@ def fig_q5_pareto(county: str, annual_visits: int = 12) -> go.Figure:
     )
 
     _theme(fig, f"Plan Efficiency Frontier (Visits per year: {annual_visits})")
-    fig.update_layout(height=440, legend_title_text="Metal Tier")
+    fig.update_layout(
+        height=440,
+        legend_title_text="Metal Tier",
+        legend=dict(orientation="h", xanchor="center", x=0.5, yanchor="top", y=-0.22),
+        margin=dict(r=16, b=100),
+    )
     return fig
 
 
@@ -479,6 +492,7 @@ app = dash.Dash(
     __name__,
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     title="FL MH Coverage Dashboard",
+    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
 )
 server = app.server
 
@@ -497,7 +511,6 @@ app.layout = dbc.Container(
     fluid=True,
     style={"background": C["bg"], "minHeight": "100vh", "padding": 0},
     children=[
-
         # Header
         html.Div(
             style={"background": C["navy"], "padding": "18px 32px"},
@@ -507,14 +520,14 @@ app.layout = dbc.Container(
                         "FL Marketplace: ACA Mental Health Coverage Analysis",
                         style={"color": "#FFFFFF", "margin": 0, "fontWeight": 600},
                     ),
-                    width=8,
+                    xs=12, md=8,
                 ),
                 dbc.Col(
                     html.P(
                         "Bruce A. Lee, 2026",
                         style={"color": C["light_purple"], "margin": 0, "fontSize": "12px", "textAlign": "right"},
                     ),
-                    width=4,
+                    xs=12, md=4,
                 ),
             ], align="center"),
         ),
@@ -584,28 +597,28 @@ app.layout = dbc.Container(
                                 ),
                             ]),
                         ),
-                        width=3,
+                        xs=12, md=3,
                     ),
                     dbc.Col(
-                        _card(dcc.Graph(id="map-fig", config={"displayModeBar": False})),
-                        width=9,
+                        _card(dcc.Graph(id="map-fig", config={"displayModeBar": False, "responsive": True})),
+                        xs=12, md=9,
                     ),
                 ]),
 
                 # Q1 + Q3
                 dbc.Row([
-                    dbc.Col(_card(dcc.Graph(id="q1-fig", config={"displayModeBar": False})), width=6),
-                    dbc.Col(_card(dcc.Graph(id="q3-fig", config={"displayModeBar": False})), width=6),
-                ]),
-
-                # Q2 -- full width
-                dbc.Row([
-                    dbc.Col(_card(dcc.Graph(id="q2-fig", config={"displayModeBar": False})), width=12),
+                    dbc.Col(_card(dcc.Graph(id="q1-fig", config={"displayModeBar": False, "responsive": True})), xs=12, md=6),
+                    dbc.Col(_card(dcc.Graph(id="q3-fig", config={"displayModeBar": False, "responsive": True})), xs=12, md=6),
                 ]),
 
                 # Q4 -- full width
                 dbc.Row([
-                    dbc.Col(_card(dcc.Graph(id="q4-fig", config={"displayModeBar": False})), width=12),
+                    dbc.Col(_card(dcc.Graph(id="q4-fig", config={"displayModeBar": False, "responsive": True})), width=12),
+                ]),
+
+                # Q2 -- full width
+                dbc.Row([
+                    dbc.Col(_card(dcc.Graph(id="q2-fig", config={"displayModeBar": False, "responsive": True})), width=12),
                 ]),
 
                 # Q5 -- Optimization + sessions slider
@@ -618,7 +631,7 @@ app.layout = dbc.Container(
                                         "Expected therapy sessions / year",
                                         style={"fontWeight": 600, "fontSize": "13px", "color": C["navy"]},
                                     ),
-                                    width=4,
+                                    xs=12, md=4,
                                 ),
                                 dbc.Col(
                                     dcc.Slider(
@@ -627,10 +640,10 @@ app.layout = dbc.Container(
                                         marks={4: "4", 12: "12", 24: "24", 36: "36", 52: "52"},
                                         tooltip={"placement": "bottom", "always_visible": True},
                                     ),
-                                    width=8,
+                                    xs=12, md=8,
                                 ),
                             ], align="center", style={"marginBottom": "8px"}),
-                            dcc.Graph(id="q5-fig", config={"displayModeBar": False}),
+                            dcc.Graph(id="q5-fig", config={"displayModeBar": False, "responsive": True}),
                         ),
                         width=12,
                     ),
@@ -705,8 +718,8 @@ def _map_click(click_data):
     Output("q5-fig",    "figure"),
     Output("data-table", "data"),
     Output("data-table", "columns"),
-    Input("county-dd",        "value"),
-    Input("sessions-slider",  "value"),
+    Input("county-dd",       "value"),
+    Input("sessions-slider", "value"),
 )
 def _update(county, sessions):
     df = _filter(PLANS, county)
@@ -748,4 +761,4 @@ def _update(county, sessions):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8050)
+    app.run(port=8050)
