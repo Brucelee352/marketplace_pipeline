@@ -2,9 +2,13 @@
 
 An end-to-end data pipeline that evaluates mental health service coverage across individual health insurance plans listed on the US Public Health Insurance Marketplace for several Florida counties. 
 
-The reason being that I wanted to answer the question, "what is the best possible coverage that I could get that offers mental health services within popular Florida metros? The counties themselves that I had chosen are places that I've either lived in or liked visiting before in FL. (Don't ask me why Miami-Dade is there though haha)
+The reason being that I wanted to answer the question, "what is the best possible coverage that I could get that offers mental health services within popular Florida metros?" 
 
-The pipeline extracts plan data from the CMS Marketplace API, loads it into DuckDB, transforms it with dbt, and produces a scored fact table ranking each plan by the quality of its mental health benefit coverage. An interactive Dash app serves the results for exploration and comparison.
+The counties themselves that I had chosen are places that I've either lived in or left a good impression upon visiting in FL. 
+
+The pipeline extracts plan data from the CMS Marketplace API, loads it into DuckDB, transforms it with dbt, and produces a scored fact table ranking each plan by the quality of its mental health benefit coverage. 
+
+An interactive Dash app serves the results for exploration and comparison.
 
 ---
 
@@ -41,9 +45,7 @@ dbt (marketplace_pipeline/)
 app/app.py               <- Dash app, reads from main.dim_*, main.fct_*
 ```
 
----
-
-## Tech Stack
+### Tech Stack
 
 | Layer         | Tool                          |
 |---------------|-------------------------------|
@@ -54,9 +56,8 @@ app/app.py               <- Dash app, reads from main.dim_*, main.fct_*
 | Visualization | Dash 2.18+, Plotly 5.24+      |
 | Runtime       | Python 3.13, `uv`             |
 
----
 
-## Project Structure
+### Project Structure
 
 ```
 marketplace_pipeline/          <- repo root
@@ -84,9 +85,7 @@ marketplace_pipeline/          <- repo root
 +-- .env                       <- API credentials (not committed)
 ```
 
----
-
-## Counties Covered
+### Counties Covered
 
 | County FIPS | County       | ZIP Code |
 |-------------|--------------|----------|
