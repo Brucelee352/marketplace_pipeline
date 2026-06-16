@@ -591,7 +591,7 @@ app.layout = dbc.Container(
                                 ),
                                 html.A(
                                     "dbt Docs ↗",
-                                    href="https://brucea-lee.com/dbt-docs/",
+                                    href="https://brucea-lee.com/docs-aca/",
                                     target="_blank",
                                     style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
                                 ),
