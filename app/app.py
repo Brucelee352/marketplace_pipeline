@@ -5,6 +5,8 @@ Explores ACA individual market plan data across four FL counties to surface
 coverage gaps, parity failures, and carrier-level value signals.
 """
 
+import json
+from datetime import datetime
 from pathlib import Path
 
 import dash
@@ -134,6 +136,32 @@ def _load():
 
 
 BENEFITS, PLANS = _load()
+
+
+def _last_built() -> str:
+    """Date the dbt models were last built, from the shipped manifest.
+
+    Read once at import: the manifest is baked into the image, so this is a
+    constant for the life of the container. Returns "" if unavailable, which
+    drops the date from the footer rather than breaking the app.
+    """
+    candidates = [
+        ROOT / "dbt_docs" / "manifest.json",                  # container layout
+        ROOT / "marketplace_pipeline" / "target" / "manifest.json",  # local dbt target
+        ROOT / "dbt_docs" / "target" / "manifest.json",
+    ]
+    for path in candidates:
+        try:
+            with path.open(encoding="utf-8") as fh:
+                stamp = json.load(fh)["metadata"]["generated_at"]
+            dt = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+            return f"{dt.day} {dt:%b %Y}"
+        except (OSError, KeyError, ValueError):
+            continue
+    return ""
+
+
+LAST_BUILT = _last_built()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -523,9 +551,34 @@ app.layout = dbc.Container(
                     xs=12, md=8,
                 ),
                 dbc.Col(
-                    html.P(
-                        "Bruce A. Lee, 2026",
-                        style={"color": C["light_purple"], "margin": 0, "fontSize": "12px", "textAlign": "right"},
+                    html.Div(
+                        style={
+                            "display":        "flex",
+                            "alignItems":     "center",
+                            "justifyContent": "flex-end",
+                            "gap":            "12px",
+                        },
+                        children=[
+                            html.P(
+                                "Bruce A. Lee, 2026",
+                                style={"color": C["light_purple"], "margin": 0, "fontSize": "12px"},
+                            ),
+                            html.A(
+                                "Home",
+                                href="https://brucea-lee.com/",
+                                target="_self",
+                                style={
+                                    "fontSize":       "12px",
+                                    "fontWeight":     600,
+                                    "color":          "#FFFFFF",
+                                    "textDecoration": "none",
+                                    "border":         f"1px solid {C['light_purple']}",
+                                    "borderRadius":   "6px",
+                                    "padding":        "4px 12px",
+                                    "whiteSpace":     "nowrap",
+                                },
+                            ),
+                        ],
                     ),
                     xs=12, md=4,
                 ),
@@ -687,6 +740,18 @@ app.layout = dbc.Container(
                         width=12,
                     ),
                 ]),
+
+                # Footer
+                html.Div(
+                    " · ".join(filter(None, [
+                        f"Data models last updated: {LAST_BUILT}" if LAST_BUILT else ""])),
+                    style={
+                        "fontSize":   "11px",
+                        "color":      C["subtext"],
+                        "textAlign":  "center",
+                        "padding":    "4px 0 20px",
+                    },
+                ),
 
             ],
         ),
