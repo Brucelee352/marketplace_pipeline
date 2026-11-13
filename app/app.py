@@ -1,11 +1,12 @@
 """
 Florida Marketplace Mental Health Coverage Dashboard
 
-Explores ACA individual market plan data across four FL counties to surface
+Explores ACA individual market plan data across twelve FL counties to surface
 coverage gaps, parity failures, and carrier-level value signals.
 """
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -15,7 +16,8 @@ import duckdb
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import Input, Output, dash_table, dcc, html, Dash
+import dash_ag_grid as dag
+from dash import Dash, Input, Output, State, dcc, html
 from flask import send_from_directory
 
 
@@ -64,6 +66,12 @@ C = {
     "grid":         "#F1F5F9",
     "axis":         "#E2E8F0",
 }
+
+# Cross-platform font stack: native UI font on Windows, macOS, iOS, Android, Linux
+FONT = (
+    "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', "
+    "Arial, 'Noto Sans', sans-serif"
+)
 
 
 # ── Data preparation ──────────────────────────────────────────────────────────
@@ -176,7 +184,7 @@ def _theme(fig: go.Figure, title: str = "") -> go.Figure:
     fig.update_layout(
         paper_bgcolor=C["card"],
         plot_bgcolor=C["grid"],
-        font=dict(family="'Segoe UI', system-ui, sans-serif", color=C["text"], size=12),
+        font=dict(family=FONT, color=C["text"], size=12),
         title=dict(
             text=title, x=0.01, xanchor="left",
             font=dict(size=13, color=C["navy"]),
@@ -221,11 +229,11 @@ def fig_map(county: str) -> go.Figure:
         stats,
         lat="lat", lon="lon",
         size="plan_count",
-        color="avg_mh_copay",
-        color_continuous_scale=[[0, C["purple"]], [0.5, C["blue"]], [1, "#93C5FD"]],
-        range_color=[20, 55],
+        color="plan_count",
+        color_continuous_scale="Tropic_r",
         hover_name="county_name",
         hover_data={"plan_count": True, "avg_mh_copay": ":.0f", "lat": False, "lon": False},
+        labels={"plan_count": "Plans", "avg_mh_copay": "Avg MH Copay ($)"},
         size_max=42,
         zoom=5.8,
         center={"lat": 27.8, "lon": -81.5},
@@ -238,7 +246,7 @@ def fig_map(county: str) -> go.Figure:
         fig.add_trace(go.Scattermap(
             lat=sel["lat"], lon=sel["lon"],
             mode="markers",
-            marker=dict(size=64, color="rgba(37,99,235,0.18)"),
+            marker=dict(size=64, color="rgba(37,128,135,0.22)"),
             hoverinfo="skip",
             showlegend=False,
         ))
@@ -247,8 +255,9 @@ def fig_map(county: str) -> go.Figure:
         paper_bgcolor=C["card"],
         margin=dict(l=0, r=0, t=0, b=0),
         height=440,
+        font=dict(family=FONT),
         coloraxis_colorbar=dict(
-            title="Avg MH<br>Copay ($)", thickness=10, len=0.55, tickfont_size=10,
+            title="Plans", thickness=10, len=0.55, tickfont_size=10,
         ),
     )
     return fig
@@ -372,7 +381,7 @@ def fig_q3_parity(county: str) -> go.Figure:
         box=True,
         points=False,
         category_orders={
-            "visit_type":  ["MH Outpatient", "Specialist Visit", "Primary Care"],
+            "visit_type":  ["Therapy", "Specialist", "Primary Care"],
             "metal_level": METAL_ORDER,
         },
         labels={"visit_type": "", "copay": "In-Network Copay ($)", "metal_level": "Metal Tier"},
@@ -455,7 +464,7 @@ def fig_q5_pareto(county: str, annual_visits: int = 12) -> go.Figure:
         opacity=0.55,
         labels={
             "premium":       "Monthly Premium ($)",
-            "annual_mh_oop": f"Expected Annual MH OOP, {annual_visits} visits ($)",
+            "annual_mh_oop": f"Expected OOP, {annual_visits} visits ($)",
             "metal_level":   "Metal Tier",
         },
         category_orders={"metal_level": METAL_ORDER},
@@ -514,9 +523,80 @@ def _card(*children, **extra_style):
     )
 
 
+def _graph(graph_id: str) -> dcc.Graph:
+    return dcc.Graph(id=graph_id, config={"displayModeBar": False, "responsive": True})
+
+
+# AG Grid theme (Theming API), matched to the dashboard palette
+GRID_THEME = (
+    "themeQuartz.withParams({"
+    f"fontFamily: \"{FONT}\", fontSize: 12, "
+    f"headerBackgroundColor: '{C['navy']}', headerTextColor: '#FFFFFF', "
+    f"oddRowBackgroundColor: '{C['bg']}', borderColor: '{C['border']}', "
+    f"accentColor: '{C['blue']}', wrapperBorderRadius: 8"
+    "})"
+)
+
+# Fixed box so <a> links and the <button> render identically in every browser
+NAV_BTN = {
+    "display":        "inline-flex",
+    "alignItems":     "center",
+    "justifyContent": "center",
+    "boxSizing":      "border-box",
+    "width":          "96px",
+    "height":         "32px",
+    "margin":         0,
+    "padding":        "0 8px",
+    "fontFamily":     "inherit",
+    "fontSize":       "12px",
+    "fontWeight":     600,
+    "lineHeight":     1,
+    "color":          C["navy"],
+    "background":     C["card"],
+    "textDecoration": "none",
+    "border":         f"1px solid {C['navy']}",
+    "borderRadius":   "6px",
+    "whiteSpace":     "nowrap",
+    "cursor":         "pointer",
+}
+
+ABOUT_MD = """
+This dashboard compares mental health coverage across 2025 ACA individual
+market plans in twelve Florida counties. I built it to find out which plans
+give the best mental health coverage in the Florida metros I've lived in or
+liked visiting.
+
+#### Pipeline
+
+1. `scripts/main.py` pages through the CMS Marketplace API
+   (`POST /plans/search`) for each county and collects plans, benefits,
+   deductibles, out-of-pocket maximums, issuers, and CMS quality ratings.
+2. Each dataset is loaded into the `raw_data` schema of a DuckDB file.
+   Timestamped CSV copies go to `data/snapshots/` for auditing.
+3. dbt (`dbt deps`, then `dbt build`) builds the staging views, the
+   `dim_plan` and `dim_issuer` marts, the fact tables, and an SCD Type 2
+   snapshot of plan history, and runs the tests.
+4. `fct_plan_mh_coverage_score` scores each plan from 0 to 100: 40 points
+   for the outpatient therapy copay, 25 for the deductible, 20 for mental
+   health benefit coverage, and 15 for the CMS star rating.
+5. This app reads the dbt models from DuckDB in read-only mode. It runs on
+   Dash, Plotly, and gunicorn in a container on Google Cloud Run.
+
+#### Reading the charts
+
+For plans that charge coinsurance instead of a copay, therapy cost assumes
+a $150 session. Plans with no deductible on file are set to $9,200, the
+highest deductible in this market. The efficiency frontier marks the plans
+that no other plan beats on both monthly premium and expected yearly
+therapy cost.
+
+>Source: CMS Marketplace API, plan year 2025.
+"""
+
+
 # ── App ───────────────────────────────────────────────────────────────────────
 
-app = dash.Dash(
+app = Dash(
     __name__,
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     title="FL MH Coverage Dashboard",
@@ -524,7 +604,7 @@ app = dash.Dash(
 )
 server = app.server
 
-DOCS_DIR = Path(__file__).parent.parent / "dbt_docs"
+DOCS_DIR = ROOT / "dbt_docs"
 
 @server.route("/dbt-docs/")
 @server.route("/dbt-docs/<path:filename>")
@@ -535,59 +615,56 @@ COUNTY_OPTIONS = [{"label": "All Counties", "value": "All Counties"}] + [
     {"label": v["name"], "value": v["name"]} for v in COUNTY_COORDS.values()
 ]
 
+about_modal = dbc.Modal(
+    id="about-modal",
+    is_open=False,
+    size="lg",
+    scrollable=True,
+    centered=True,
+    fullscreen="sm-down",
+    children=[
+        dbc.ModalHeader(dbc.ModalTitle("About this dashboard", style={"color": C["navy"]})),
+        dbc.ModalBody(dcc.Markdown(ABOUT_MD, style={"fontSize": "14px", "color": C["text"]})),
+    ],
+)
+
 app.layout = dbc.Container(
     fluid=True,
-    style={"background": C["bg"], "minHeight": "100vh", "padding": 0},
+    className="p-0",
+    style={"background": C["bg"], "minHeight": "100vh", "fontFamily": FONT},
     children=[
+        about_modal,
+
         # Header
         html.Div(
-            style={"background": C["navy"], "padding": "18px 32px"},
-            children=dbc.Row([
-                dbc.Col(
-                    html.H5(
-                        "FL Marketplace: ACA Mental Health Coverage Analysis",
-                        style={"color": "#FFFFFF", "margin": 0, "fontWeight": 600},
-                    ),
-                    xs=12, md=8,
+            className="px-3 px-md-4 py-3",
+            style={"background": C["navy"]},
+            children=[
+                html.H5(
+                    "FL Marketplace: ACA Mental Health Coverage Tracker",
+                    style={"color": "#FFFFFF", "margin": 0, "fontWeight": 600},
                 ),
-                dbc.Col(
-                    html.Div(
-                        style={
-                            "display":        "flex",
-                            "alignItems":     "center",
-                            "justifyContent": "flex-end",
-                            "gap":            "12px",
-                        },
-                        children=[
-                            html.P(
-                                "Bruce A. Lee, 2026",
-                                style={"color": C["light_purple"], "margin": 0, "fontSize": "12px"},
-                            ),
-                            html.A(
-                                "Home",
-                                href="https://brucea-lee.com/",
-                                target="_self",
-                                style={
-                                    "fontSize":       "12px",
-                                    "fontWeight":     600,
-                                    "color":          "#FFFFFF",
-                                    "textDecoration": "none",
-                                    "border":         f"1px solid {C['light_purple']}",
-                                    "borderRadius":   "6px",
-                                    "padding":        "4px 12px",
-                                    "whiteSpace":     "nowrap",
-                                },
-                            ),
-                        ],
-                    ),
-                    xs=12, md=4,
+                html.P(
+                    "Bruce A. Lee, 2026",
+                    style={"color": "#FFFFFF", "margin": 0, "fontSize": "12px", 'textAlign': 'right'},
                 ),
-            ], align="center"),
+                html.Div(
+                    className="d-flex flex-wrap gap-2 mt-2",
+                    children=[
+                        html.Button("About", id="about-btn", n_clicks=0,
+                                    type="button", style=NAV_BTN),
+                        html.A("Home", href="https://brucea-lee.com/",
+                               target="_self", style=NAV_BTN),
+                        html.A("dbt Docs ↗", href="https://brucea-lee.com/docs-aca/",
+                               target="_blank", rel="noopener noreferrer", style=NAV_BTN),
+                    ],
+                ),
+            ],
         ),
 
         # Body
         html.Div(
-            style={"padding": "24px 32px"},
+            className="p-2 p-md-4",
             children=[
 
                 # County selector + Florida map
@@ -616,63 +693,23 @@ app.layout = dbc.Container(
                                 "Source: CMS Marketplace API · dbt + DuckDB",
                                 style={"fontSize": "11px", "color": C["purple"], "margin": 0},
                             ),
-                            html.Hr(style={"margin": "14px 0"}),
-                            html.P(
-                                "Connect",
-                                style={"fontWeight": 600, "fontSize": "12px", "color": C["navy"], "marginBottom": "8px"},
-                            ),
-                            html.Div([
-                                html.A(
-                                    "GitHub",
-                                    href="https://github.com/brucelee352",  
-                                    target="_blank",
-                                    style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
-                                ),
-                                html.A(
-                                    "LinkedIn",
-                                    href="https://linkedin.com/in/brucealee",  
-                                    target="_blank",
-                                    style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
-                                ),
-                            ]),
-                            html.Div([
-                                html.A(
-                                    "Resume",
-                                    href="https://github.com/Brucelee352/marketplace_pipeline/blob/master/misc/BruceLee_2026Resume_b.pdf",
-                                    target="_blank",
-                                    style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
-                                ),
-                                html.A(
-                                    "dbt Docs ↗",
-                                    href="https://brucea-lee.com/docs-aca/",
-                                    target="_blank",
-                                    style={"fontSize": "12px", "color": C["blue"], "display": "block", "marginBottom": "6px", "textDecoration": "none"},
-                                ),
-                            ]),
                         ),
                         xs=12, md=3,
                     ),
-                    dbc.Col(
-                        _card(dcc.Graph(id="map-fig", config={"displayModeBar": False, "responsive": True})),
-                        xs=12, md=9,
-                    ),
+                    dbc.Col(_card(_graph("map-fig")), xs=12, md=9),
                 ]),
 
                 # Q1 + Q3
                 dbc.Row([
-                    dbc.Col(_card(dcc.Graph(id="q1-fig", config={"displayModeBar": False, "responsive": True})), xs=12, md=6),
-                    dbc.Col(_card(dcc.Graph(id="q3-fig", config={"displayModeBar": False, "responsive": True})), xs=12, md=6),
+                    dbc.Col(_card(_graph("q1-fig")), xs=12, md=6),
+                    dbc.Col(_card(_graph("q3-fig")), xs=12, md=6),
                 ]),
 
                 # Q4 -- full width
-                dbc.Row([
-                    dbc.Col(_card(dcc.Graph(id="q4-fig", config={"displayModeBar": False, "responsive": True})), width=12),
-                ]),
+                dbc.Row([dbc.Col(_card(_graph("q4-fig")), width=12)]),
 
                 # Q2 -- full width
-                dbc.Row([
-                    dbc.Col(_card(dcc.Graph(id="q2-fig", config={"displayModeBar": False, "responsive": True})), width=12),
-                ]),
+                dbc.Row([dbc.Col(_card(_graph("q2-fig")), width=12)]),
 
                 # Q5 -- Optimization + sessions slider
                 dbc.Row([
@@ -696,7 +733,7 @@ app.layout = dbc.Container(
                                     xs=12, md=8,
                                 ),
                             ], align="center", style={"marginBottom": "8px"}),
-                            dcc.Graph(id="q5-fig", config={"displayModeBar": False, "responsive": True}),
+                            _graph("q5-fig"),
                         ),
                         width=12,
                     ),
@@ -706,35 +743,42 @@ app.layout = dbc.Container(
                 dbc.Row([
                     dbc.Col(
                         _card(
-                            html.Label(
-                                "Plan Data Explorer",
-                                style={
-                                    "fontWeight": 600, "fontSize": "13px",
-                                    "color": C["navy"], "marginBottom": "10px", "display": "block",
-                                },
-                            ),
-                            dash_table.DataTable(
-                                id="data-table",
-                                page_size=12,
-                                filter_action="native",
-                                sort_action="native",
-                                style_table={"overflowX": "auto"},
-                                style_cell={
-                                    "fontFamily": "'Segoe UI', sans-serif",
-                                    "fontSize": "12px",
-                                    "padding": "6px 12px",
-                                    "border": f"1px solid {C['border']}",
-                                },
-                                style_header={
-                                    "backgroundColor": C["navy"],
-                                    "color": "#FFFFFF",
-                                    "fontWeight": 600,
-                                    "fontSize": "12px",
-                                    "border": "none",
-                                },
-                                style_data_conditional=[
-                                    {"if": {"row_index": "odd"}, "backgroundColor": C["bg"]},
+                            html.Div(
+                                className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2",
+                                children=[
+                                    html.Label(
+                                        "Plan Data Explorer",
+                                        style={"fontWeight": 600, "fontSize": "13px",
+                                               "color": C["navy"], "margin": 0},
+                                    ),
+                                    dbc.Button(
+                                        "Export to .csv",
+                                        id="export-btn",
+                                        n_clicks=0,
+                                        size="sm",
+                                        style={"background": C["navy"], "borderColor": C["navy"],
+                                               "fontSize": "12px", "fontWeight": 600},
+                                    ),
                                 ],
+                            ),
+                            dag.AgGrid(
+                                id="data-table",
+                                defaultColDef={
+                                    "sortable":       True,
+                                    "filter":         True,
+                                    "floatingFilter": True,
+                                    "resizable":      True,
+                                    "minWidth":       120,
+                                },
+                                columnSize="responsiveSizeToFit",
+                                dashGridOptions={
+                                    "pagination":         True,
+                                    "paginationPageSize": 12,
+                                    "paginationPageSizeSelector": [12, 25, 50, 100],
+                                    "domLayout":          "autoHeight",
+                                    "theme": {"function": GRID_THEME},
+                                },
+                                style={"width": "100%"},
                             ),
                         ),
                         width=12,
@@ -743,8 +787,7 @@ app.layout = dbc.Container(
 
                 # Footer
                 html.Div(
-                    " · ".join(filter(None, [
-                        f"Data models last updated: {LAST_BUILT}" if LAST_BUILT else ""])),
+                    f"Data models last updated: {LAST_BUILT}" if LAST_BUILT else "",
                     style={
                         "fontSize":   "11px",
                         "color":      C["subtext"],
@@ -760,6 +803,29 @@ app.layout = dbc.Container(
 
 
 # ── Callbacks ─────────────────────────────────────────────────────────────────
+
+@app.callback(
+    Output("about-modal", "is_open"),
+    Input("about-btn", "n_clicks"),
+    State("about-modal", "is_open"),
+    prevent_initial_call=True,
+)
+def _toggle_about(_, is_open):
+    return not is_open
+
+
+@app.callback(
+    Output("data-table", "exportDataAsCsv"),
+    Output("data-table", "csvExportParams"),
+    Input("export-btn", "n_clicks"),
+    State("county-dd", "value"),
+    prevent_initial_call=True,
+)
+def _export_csv(_, county):
+    # AG Grid exports the rows as currently filtered and sorted in the browser
+    slug = (county or "All Counties").lower().replace(" ", "_")
+    return True, {"fileName": f"fl_mh_plans_{slug}.csv"}
+
 
 @app.callback(
     Output("county-dd", "value"),
@@ -781,8 +847,8 @@ def _map_click(click_data):
     Output("q3-fig",    "figure"),
     Output("q4-fig",    "figure"),
     Output("q5-fig",    "figure"),
-    Output("data-table", "data"),
-    Output("data-table", "columns"),
+    Output("data-table", "rowData"),
+    Output("data-table", "columnDefs"),
     Input("county-dd",       "value"),
     Input("sessions-slider", "value"),
 )
@@ -809,7 +875,11 @@ def _update(county, sessions):
 
     num_ids = {"Premium ($)", "MH Copay ($)", "Specialist Copay ($)", "Primary Care Copay ($)", "Deductible ($)", "CMS Rating", "Coverage Score"}
     columns = [
-        {"name": c, "id": c, "type": "numeric" if c in num_ids else "text"}
+        {
+            "field": c,
+            "filter": "agNumberColumnFilter" if c in num_ids else "agTextColumnFilter",
+            **({"minWidth": 240} if c == "Plan" else {}),
+        }
         for c in tbl.columns
     ]
 
@@ -826,4 +896,10 @@ def _update(county, sessions):
 
 
 if __name__ == "__main__":
-    app.run(port=8050)
+    # Local dev server; production runs under gunicorn (see Dockerfile)
+    app.run(
+        host=os.environ.get("HOST", "127.0.0.1"),
+        debug=True, 
+        port=int(os.environ.get("PORT", 8052)),
+    )
+
